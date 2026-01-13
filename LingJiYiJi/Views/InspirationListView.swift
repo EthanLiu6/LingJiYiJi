@@ -285,7 +285,13 @@ struct InspirationListView: View {
         }
         
         Button {
-            inspiration.isCompleted.toggle()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                inspiration.isCompleted.toggle()
+                if inspiration.isCompleted {
+                    inspiration.reminderDate = nil
+                    NotificationManager.shared.cancelNotification(for: inspiration)
+                }
+            }
         } label: {
             Label(inspiration.isCompleted ? "设为未完成" : "完成", systemImage: inspiration.isCompleted ? "circle" : "checkmark.circle")
         }
@@ -395,7 +401,9 @@ struct InspirationRowView: View {
                  withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                      inspiration.isCompleted.toggle()
                      if inspiration.isCompleted {
-                         // 播放系统勾选音效
+                         // 勾选已完成：关闭提醒并播放音效
+                         inspiration.reminderDate = nil
+                         NotificationManager.shared.cancelNotification(for: inspiration)
                          NSSound(named: "Glass")?.play()
                      }
                  }

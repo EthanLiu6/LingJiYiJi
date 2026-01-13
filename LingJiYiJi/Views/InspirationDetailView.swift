@@ -115,58 +115,33 @@ struct InspirationDetailView: View {
                         Label("开启提醒", systemImage: "bell.badge.fill")
                             .foregroundColor(inspiration.reminderDate != nil ? Color(red: 1.0, green: 0.4, blue: 0.2) : .secondary)
                     }
-                    .toggleStyle(.switch)
+                    .toggleStyle(CustomToggleStyle())
                     
                     if let reminderDate = inspiration.reminderDate {
                         VStack(alignment: .leading, spacing: 10) {
                             // 快捷预设按钮
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
-                                    presetButton("1小时后", icon: "clock") { setReminderRelative(hours: 1) }
-                                    presetButton("今晚 20:00", icon: "moon.stars") { setReminderToday(hour: 20) }
-                                    presetButton("明天 09:00", icon: "sunrise") { setReminderTomorrow(hour: 9) }
-                                    presetButton("明天 22:00", icon: "moon") { setReminderTomorrow(hour: 22) }
+                                    presetButton("1小时后", icon: "clock", color: .blue) { setReminderRelative(hours: 1) }
+                                    presetButton("今晚 20:00", icon: "moon.stars", color: .indigo) { setReminderToday(hour: 20) }
+                                    presetButton("明天 09:00", icon: "sunrise", color: .orange) { setReminderTomorrow(hour: 9) }
+                                    presetButton("明天 22:00", icon: "moon", color: .purple) { setReminderTomorrow(hour: 22) }
                                 }
                             }
                             
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Label("日期", systemImage: "calendar")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                        .frame(width: 60, alignment: .leading)
-                                    
-                                    DatePicker("", selection: Binding(
-                                        get: { reminderDate },
-                                        set: { 
-                                            inspiration.reminderDate = $0
-                                            cachedReminderDate = $0
-                                            NotificationManager.shared.scheduleNotification(for: inspiration)
-                                        }
-                                    ), displayedComponents: .date)
-                                    .datePickerStyle(.field)
-                                    .labelsHidden()
+                            DatePicker("精确时间", selection: Binding(
+                                get: { reminderDate },
+                                set: { 
+                                    inspiration.reminderDate = $0
+                                    cachedReminderDate = $0
+                                    NotificationManager.shared.scheduleNotification(for: inspiration)
                                 }
-                                
-                                HStack {
-                                    Label("时间", systemImage: "clock")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                        .frame(width: 60, alignment: .leading)
-                                    
-                                    DatePicker("", selection: Binding(
-                                        get: { reminderDate },
-                                        set: { 
-                                            inspiration.reminderDate = $0
-                                            cachedReminderDate = $0
-                                            NotificationManager.shared.scheduleNotification(for: inspiration)
-                                        }
-                                    ), displayedComponents: .hourAndMinute)
-                                    .datePickerStyle(.field)
-                                    .labelsHidden()
-                                }
-                            }
-                            .padding(.vertical, 4)
+                            ))
+                            .datePickerStyle(.stepperField)
+                            .labelsHidden()
+                            .padding(4)
+                            .background(Color(nsColor: .controlBackgroundColor))
+                            .border(Color.primary.opacity(0.1), width: 1)
                         }
                         .padding(.top, 4)
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -176,14 +151,16 @@ struct InspirationDetailView: View {
             
             Section("状态") {
                 Toggle("已完成", isOn: $inspiration.isCompleted)
+                    .toggleStyle(CustomToggleStyle())
                     .onChange(of: inspiration.isCompleted) { oldValue, newValue in
                         if newValue {
+                            // 开启已完成：关闭并清除提醒
+                            inspiration.reminderDate = nil
                             NotificationManager.shared.cancelNotification(for: inspiration)
-                        } else {
-                            NotificationManager.shared.scheduleNotification(for: inspiration)
                         }
                     }
                 Toggle("置顶", isOn: $inspiration.isPinned)
+                    .toggleStyle(CustomToggleStyle())
                 
                 LabeledContent("创建时间") {
                     Text(inspiration.createdAt, style: .date)
@@ -208,7 +185,7 @@ struct InspirationDetailView: View {
     
     // MARK: - 提醒助手方法
     
-    private func presetButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+    private func presetButton(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 4) {
                 Image(systemName: icon)
@@ -218,7 +195,8 @@ struct InspirationDetailView: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(Color.primary.opacity(0.05))
+            .background(color.opacity(0.1))
+            .foregroundColor(color)
             .cornerRadius(6)
         }
         .buttonStyle(.plain)
@@ -256,6 +234,35 @@ struct InspirationDetailView: View {
             inspiration.reminderDate = date
             cachedReminderDate = date
             NotificationManager.shared.scheduleNotification(for: inspiration)
+        }
+    }
+}
+
+// MARK: - 自定义样式
+
+struct CustomToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack {
+            configuration.label
+            Spacer()
+            ZStack {
+                // 背景胶囊形
+                Capsule()
+                    .fill(configuration.isOn ? Color.accentColor : Color.primary.opacity(0.15))
+                    .frame(width: 38, height: 20)
+                
+                // 滑块圆形
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 16, height: 16)
+                    .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
+                    .offset(x: configuration.isOn ? 9 : -9)
+            }
+            .onTapGesture {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                    configuration.isOn.toggle()
+                }
+            }
         }
     }
 }

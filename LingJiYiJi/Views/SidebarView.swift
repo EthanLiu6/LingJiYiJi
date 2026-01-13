@@ -140,7 +140,7 @@ struct SidebarView: View {
                                         }
                                         
                                         Button(role: .destructive) {
-                                            modelContext.delete(category)
+                                            deleteCategory(category)
                                         } label: {
                                             Label("删除", systemImage: "trash")
                                         }
@@ -210,7 +210,18 @@ struct SidebarView: View {
                 HStack {
                     Button("取消") { editingCategory = nil }
                     Button("保存") {
-                        category.name = editName
+                        let oldName = category.name
+                        let newName = editName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !newName.isEmpty && oldName != newName {
+                            // 更新所有属于该分类的灵感
+                            for inspiration in inspirations {
+                                if inspiration.category == oldName {
+                                    inspiration.category = newName
+                                }
+                            }
+                            category.name = newName
+                            try? modelContext.save()
+                        }
                         editingCategory = nil
                     }
                     .buttonStyle(.borderedProminent)
@@ -237,6 +248,18 @@ struct SidebarView: View {
             newCategoryName = ""
             showingAddCategory = false
         }
+    }
+    
+    private func deleteCategory(_ category: Category) {
+        let nameToDelete = category.name
+        // 将属于该分类的所有灵感移至“未分类”
+        for inspiration in inspirations {
+            if inspiration.category == nameToDelete {
+                inspiration.category = "未分类"
+            }
+        }
+        modelContext.delete(category)
+        try? modelContext.save()
     }
     
     private func moveCategories(from source: IndexSet, to destination: Int) {
