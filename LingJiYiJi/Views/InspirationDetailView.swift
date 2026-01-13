@@ -32,7 +32,7 @@ struct InspirationDetailView: View {
                             .font(.system(size: 14))
                             .scrollContentBackground(.hidden)
                     }
-                    .frame(minHeight: 200)
+                    .frame(height: 100)
                     .padding(6)
                     .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
                     .cornerRadius(8)
@@ -113,9 +113,10 @@ struct InspirationDetailView: View {
                         }
                     )) {
                         Label("开启提醒", systemImage: "bell.badge.fill")
-                            .foregroundColor(inspiration.reminderDate != nil ? Color(red: 1.0, green: 0.4, blue: 0.2) : .secondary)
+                            .foregroundColor(inspiration.reminderDate != nil ? (inspiration.isCompleted ? .secondary : Color(red: 1.0, green: 0.4, blue: 0.2)) : .secondary)
                     }
                     .toggleStyle(.switch)
+                    .disabled(inspiration.isCompleted)
                     
                     if let reminderDate = inspiration.reminderDate {
                         VStack(alignment: .leading, spacing: 10) {
@@ -141,6 +142,8 @@ struct InspirationDetailView: View {
                         }
                         .padding(.top, 4)
                         .transition(.move(edge: .top).combined(with: .opacity))
+                        .opacity(inspiration.isCompleted ? 0.5 : 1.0)
+                        .disabled(inspiration.isCompleted)
                     }
                 }
             }
