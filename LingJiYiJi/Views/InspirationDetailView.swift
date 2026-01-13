@@ -1,190 +1,171 @@
 import SwiftUI
 import SwiftData
 
+/// 灵感详情视图：支持编辑标题、备注、分类以及设置时间提醒
 struct InspirationDetailView: View {
-    @Bindable var inspiration: Inspiration
-    @Query private var categories: [Category]
-    @State private var isAIHovered: Bool = false
-    @State private var cachedReminderDate: Date = Calendar.current.date(bySettingHour: 22, minute: 0, second: 0, of: Calendar.current.date(byAdding: .day, value: 1, to: Date())!) ?? Date()
+    @Environment(\.modelContext) private var modelContext
+    @Bindable var inspiration: Inspiration          // 当前正在编辑的灵感模型
+    @Query(sort: \Category.orderIndex) private var categories: [Category]
+    
+    @State private var showingCategoryPicker = false // 控制分类选择弹窗
+    @State private var isAIClassifying = false      // AI 自动分类加载状态
+    @State private var cachedReminderDate: Date?    // 缓存提醒时间，用于取消/恢复逻辑
     
     var body: some View {
-        Form {
-            Section("基本信息") {
-                TextField("标题", text: $inspiration.title)
-                    .font(.title2.bold())
-                    .textFieldStyle(.plain)
-                
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                // 1. 标题编辑区域
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("备注")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
+                    TextField("灵感标题", text: $inspiration.title, axis: .vertical)
+                        .font(.system(size: 28, weight: .bold))
+                        .textFieldStyle(.plain)
+                        .lineLimit(2)
                     
-                    ZStack(alignment: .topLeading) {
-                        if inspiration.notes.isEmpty {
-                            Text("记录更详细的想法...")
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 8)
-                                .allowsHitTesting(false)
-                        }
-                        
-                        TextEditor(text: $inspiration.notes)
-                            .font(.system(size: 14))
-                            .scrollContentBackground(.hidden)
-                    }
-                    .frame(minHeight: 100)
-                    .padding(6)
-                    .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
-                    )
-                }
-            }
-            
-            Section("分类") {
-                HStack(spacing: 12) {
-                    Picker("所属类别", selection: $inspiration.category) {
-                        ForEach(Array(Set(categories.map { $0.name })).sorted(), id: \.self) { name in
-                            Text(name).tag(name)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .frame(maxWidth: 200)
-                    
-                    Button {
-                        Task {
-                            let availableCatNames = categories.map { $0.name }
-                            let category = await AIService.shared.classifyInspiration(title: inspiration.title, notes: inspiration.notes, availableCategories: availableCatNames)
-                            withAnimation(.spring()) {
-                                inspiration.category = category
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "sparkles")
-                                .symbolEffect(.pulse, options: .repeating)
-                            Text("AI 自动分类")
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(
-                            LinearGradient(
-                                colors: [Color(red: 0.2, green: 0.5, blue: 0.9), Color(red: 0.4, green: 0.4, blue: 0.8)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                        .shadow(color: Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.3), radius: isAIHovered ? 6 : 2, x: 0, y: 1)
-                    }
-                    .buttonStyle(.plain)
-                    .scaleEffect(isAIHovered ? 1.05 : 1.0)
-                    .onHover { hovering in
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            isAIHovered = hovering
-                        }
-                    }
-                    .keyboardShortcut("l", modifiers: .command)
-                }
-            }
-            
-            Section("提醒") {
-                VStack(alignment: .leading, spacing: 12) {
-                    Toggle(isOn: Binding(
-                        get: { inspiration.reminderDate != nil },
-                        set: { isOn in
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                if isOn {
-                                    // 优先使用缓存的时间，如果缓存时间已过期，则设为明天晚上10点
-                                    let dateToSet = cachedReminderDate > Date() ? cachedReminderDate : defaultReminderDate()
-                                    inspiration.reminderDate = dateToSet
-                                    NotificationManager.shared.scheduleNotification(for: inspiration)
-                                } else {
-                                    if let current = inspiration.reminderDate {
-                                        cachedReminderDate = current
-                                    }
-                                    inspiration.reminderDate = nil
-                                    NotificationManager.shared.cancelNotification(for: inspiration)
+                    HStack(spacing: 12) {
+                        // 分类选择按钮
+                        Menu {
+                            ForEach(categories) { category in
+                                Button(category.name) {
+                                    inspiration.category = category.name
                                 }
                             }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "folder.fill")
+                                Text(inspiration.category.isEmpty ? "未分类" : inspiration.category)
+                            }
+                            .font(.system(size: 12, weight: .medium))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.primary.opacity(0.05))
+                            .cornerRadius(6)
                         }
-                    )) {
-                        Label("开启提醒", systemImage: "bell.badge.fill")
-                            .foregroundColor(inspiration.reminderDate != nil ? Color(red: 1.0, green: 0.4, blue: 0.2) : .secondary)
+                        .menuStyle(.plain)
+                        
+                        // AI 自动分类按钮
+                        Button(action: autoClassify) {
+                            HStack(spacing: 4) {
+                                if isAIClassifying {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                        .scaleEffect(0.6)
+                                } else {
+                                    Image(systemName: "sparkles")
+                                }
+                                Text(isAIClassifying ? "AI 分类中..." : "AI 自动分类")
+                            }
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.accentColor)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.accentColor.opacity(0.1))
+                            .cornerRadius(6)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isAIClassifying)
+                        
+                        Spacer()
+                        
+                        // 创建时间展示
+                        Text(inspiration.createdAt.formatted(.dateTime.year().month().day().hour().minute()))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
                     }
-                    .toggleStyle(.switch)
+                }
+                
+                Divider()
+                
+                // 2. 提醒时间设置区域
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Label("时间提醒", systemImage: "bell.badge.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                        
+                        Spacer()
+                        
+                        // 提醒开关
+                        Toggle("", isOn: Binding(
+                            get: { inspiration.reminderDate != nil },
+                            set: { isEnabled in
+                                withAnimation {
+                                    if isEnabled {
+                                        // 开启提醒：恢复缓存时间或默认设为 1 小时后
+                                        inspiration.reminderDate = cachedReminderDate ?? Date().addingTimeInterval(3600)
+                                        NotificationManager.shared.scheduleNotification(for: inspiration)
+                                    } else {
+                                        // 关闭提醒：备份当前时间并清空
+                                        cachedReminderDate = inspiration.reminderDate
+                                        inspiration.reminderDate = nil
+                                        NotificationManager.shared.cancelNotification(for: inspiration)
+                                    }
+                                }
+                            }
+                        ))
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                    }
                     
                     if let reminderDate = inspiration.reminderDate {
-                        VStack(alignment: .leading, spacing: 10) {
-                            // 快捷预设按钮
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    presetButton("1小时后", icon: "clock", color: .blue) { setReminderRelative(hours: 1) }
-                                    presetButton("今晚 20:00", icon: "moon.stars", color: .purple) { setReminderToday(hour: 20) }
-                                    presetButton("明天 09:00", icon: "sunrise", color: .orange) { setReminderTomorrow(hour: 9) }
-                                    presetButton("明天 22:00", icon: "moon", color: .indigo) { setReminderTomorrow(hour: 22) }
-                                }
-                            }
-                            
-                            DatePicker("精确时间", selection: Binding(
+                        VStack(alignment: .leading, spacing: 12) {
+                            // 日期选择器
+                            DatePicker("", selection: Binding(
                                 get: { reminderDate },
-                                set: { 
-                                    inspiration.reminderDate = $0
-                                    cachedReminderDate = $0
+                                set: { newDate in
+                                    inspiration.reminderDate = newDate
                                     NotificationManager.shared.scheduleNotification(for: inspiration)
                                 }
                             ))
-                            .datePickerStyle(.field)
+                            .datePickerStyle(.stepperField)
+                            .labelsHidden()
+                            
+                            // 预设快捷时间按钮（带颜色区分）
+                            HStack(spacing: 8) {
+                                presetButton("1小时后", icon: "clock", color: .blue) {
+                                    setReminder(hours: 1)
+                                }
+                                presetButton("明天", icon: "sunrise", color: .orange) {
+                                    setReminder(days: 1)
+                                }
+                                presetButton("3天后", icon: "calendar", color: .purple) {
+                                    setReminder(days: 3)
+                                }
+                                presetButton("下周", icon: "calendar.badge.clock", color: .green) {
+                                    setReminder(days: 7)
+                                }
+                            }
                         }
-                        .padding(.top, 4)
+                        .padding()
+                        .background(Color.primary.opacity(0.03))
+                        .cornerRadius(12)
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
                 }
-            }
-            
-            Section("状态") {
-                Toggle("已完成", isOn: $inspiration.isCompleted)
-                    .onChange(of: inspiration.isCompleted) { oldValue, newValue in
-                        if newValue {
-                            // 勾选已完成后，自动关闭提醒
-                            if let current = inspiration.reminderDate {
-                                cachedReminderDate = current
-                            }
-                            inspiration.reminderDate = nil
-                            NotificationManager.shared.cancelNotification(for: inspiration)
-                        } else {
-                            // 重新设为未完成时，如果不希望自动恢复提醒，这里可以保持 nil
-                            // 或者根据需要逻辑恢复
-                        }
-                    }
-                Toggle("置顶", isOn: $inspiration.isPinned)
                 
-                LabeledContent("创建时间") {
-                    Text(inspiration.createdAt, style: .date)
-                    Text(inspiration.createdAt, style: .time)
+                // 3. 备注内容编辑区域
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("备注内容", systemImage: "doc.text.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                    
+                    TextEditor(text: $inspiration.notes)
+                        .font(.system(size: 14))
+                        .lineSpacing(6)
+                        .frame(minHeight: 120) // 调整备注框最小高度，保持紧凑
+                        .padding(8)
+                        .background(Color.primary.opacity(0.03))
+                        .cornerRadius(8)
+                        .scrollContentBackground(.hidden)
                 }
+                
+                Spacer(minLength: 40)
             }
+            .padding(32)
         }
-        .formStyle(.grouped)
-        .navigationTitle("灵感详情")
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button {
-                    // 触发搜索框聚焦
-                    NSApp.sendAction(#selector(NSTextField.becomeFirstResponder), to: nil, from: nil)
-                } label: {
-                    Label("搜索", systemImage: "magnifyingglass")
-                }
-                .keyboardShortcut("f", modifiers: .command)
-            }
-        }
+        .background(Color(nsColor: .textBackgroundColor))
     }
     
-    // MARK: - 提醒助手方法
+    // MARK: - 辅助组件与逻辑
     
+    /// 构建带有特定颜色的预设按钮
     private func presetButton(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 4) {
@@ -202,38 +183,40 @@ struct InspirationDetailView: View {
         .buttonStyle(.plain)
     }
     
-    private func defaultReminderDate() -> Date {
+    /// 快捷设置提醒时间逻辑
+    private func setReminder(hours: Int = 0, days: Int = 0) {
         let calendar = Calendar.current
-        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!
-        return calendar.date(bySettingHour: 22, minute: 0, second: 0, of: tomorrow) ?? Date()
-    }
-    
-    private func setReminderRelative(hours: Int) {
-        let date = Calendar.current.date(byAdding: .hour, value: hours, to: Date()) ?? Date()
-        updateReminder(date)
-    }
-    
-    private func setReminderToday(hour: Int) {
-        let date = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: Date()) ?? Date()
-        // 如果设定时间已过，自动设为明天
-        if date < Date() {
-            setReminderTomorrow(hour: hour)
-        } else {
-            updateReminder(date)
+        var components = DateComponents()
+        components.hour = hours
+        components.day = days
+        
+        if let newDate = calendar.date(byAdding: components, to: Date()) {
+            withAnimation {
+                inspiration.reminderDate = newDate
+                NotificationManager.shared.scheduleNotification(for: inspiration)
+            }
         }
     }
     
-    private func setReminderTomorrow(hour: Int) {
-        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date())!
-        let date = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: tomorrow) ?? Date()
-        updateReminder(date)
-    }
-    
-    private func updateReminder(_ date: Date) {
-        withAnimation(.spring()) {
-            inspiration.reminderDate = date
-            cachedReminderDate = date
-            NotificationManager.shared.scheduleNotification(for: inspiration)
+    /// 调用 AI 服务自动识别灵感分类
+    private func autoClassify() {
+        guard !inspiration.title.isEmpty else { return }
+        
+        isAIClassifying = true
+        Task {
+            let availableCatNames = categories.map { $0.name }
+            let category = await AIService.shared.classifyInspiration(
+                title: inspiration.title,
+                notes: inspiration.notes,
+                availableCategories: availableCatNames
+            )
+            
+            await MainActor.run {
+                withAnimation {
+                    inspiration.category = category
+                    isAIClassifying = false
+                }
+            }
         }
     }
 }

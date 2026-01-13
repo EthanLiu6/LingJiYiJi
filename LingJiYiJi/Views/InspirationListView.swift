@@ -2,20 +2,22 @@ import SwiftUI
 import SwiftData
 import AppKit
 
+/// 灵感列表视图：展示选定分类下的所有灵感，支持搜索、排序和快捷添加
 struct InspirationListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var inspirations: [Inspiration]
     @Query private var categories: [Category]
-    @Binding var selectedInspiration: Inspiration?
-    @Binding var selection: NavigationItem?
+    @Binding var selectedInspiration: Inspiration?   // 与父视图共享的选中项
+    @Binding var selection: NavigationItem?          // 当前侧边栏选中项
     
-    @State private var searchText: String = ""
-    @State private var quickInputText: String = ""
-    @State private var isCompletedExpanded: Bool = true
-    @State private var isAddHovered: Bool = false
-    @State private var showingDeleteConfirmation = false
-    @State private var inspirationToDelete: Inspiration?
+    @State private var searchText: String = ""        // 搜索框文本
+    @State private var quickInputText: String = ""    // 顶部快捷输入框文本
+    @State private var isCompletedExpanded: Bool = true // “已完成”折叠状态
+    @State private var isAddHovered: Bool = false     // 加号按钮悬停动画状态
+    @State private var showingDeleteConfirmation = false // 删除确认弹窗
+    @State private var inspirationToDelete: Inspiration? // 待删除的灵感项
     
+    // 过滤出未完成的灵感（按置顶和自定义顺序排序）
     var pendingInspirations: [Inspiration] {
         filteredInspirations.filter { !$0.isCompleted }
             .sorted { 
@@ -26,6 +28,7 @@ struct InspirationListView: View {
             }
     }
     
+    // 过滤出已完成的灵感（按创建时间倒序）
     var completedInspirations: [Inspiration] {
         filteredInspirations.filter { $0.isCompleted }
             .sorted { 
@@ -36,8 +39,8 @@ struct InspirationListView: View {
             }
     }
     
+    // 根据搜索文本和侧边栏分类过滤后的灵感全集
     var filteredInspirations: [Inspiration] {
-        // 如果正在搜索，展示全局搜索结果
         if !searchText.isEmpty {
             return inspirations.filter { 
                 $0.title.localizedCaseInsensitiveContains(searchText) || 
@@ -46,8 +49,6 @@ struct InspirationListView: View {
         }
         
         var filtered = inspirations
-        
-        // 如果没有搜索，应用侧边栏导航过滤
         if let filter = selection {
             switch filter {
             case .all:
@@ -60,13 +61,12 @@ struct InspirationListView: View {
                 break
             }
         }
-        
         return filtered
     }
     
     var body: some View {
         VStack(spacing: 0) {
-            // 顶部导航/标题区域
+            // 1. 顶部标题与新建按钮
             HStack {
                 Text(titleForSelection)
                     .font(.system(size: 24, weight: .bold))
@@ -102,7 +102,7 @@ struct InspirationListView: View {
             .padding(.top, 24)
             .padding(.bottom, 16)
 
-            // 快捷输入框
+            // 2. 快捷灵感输入框（Sparkles 风格）
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     Image(systemName: "sparkles")
@@ -149,7 +149,9 @@ struct InspirationListView: View {
                     .padding(.horizontal, 24)
             }
             
+            // 3. 灵感主列表
             if filteredInspirations.isEmpty {
+                // 无数据时的空状态展示
                 VStack {
                     Spacer()
                     ContentUnavailableView {
@@ -163,21 +165,22 @@ struct InspirationListView: View {
                 .background(Color(nsColor: .windowBackgroundColor))
             } else {
                 List {
+                        // 未完成部分
                         Section {
                             ForEach(pendingInspirations) { inspiration in
-                        InspirationRowView(inspiration: inspiration, selectedInspiration: $selectedInspiration, searchText: $searchText, selection: $selection)
-                            .contentShape(Rectangle())
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                            .listRowBackground(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.1) : Color.clear)
-                                    .overlay(
+                                InspirationRowView(inspiration: inspiration, selectedInspiration: $selectedInspiration, searchText: $searchText, selection: $selection)
+                                    .contentShape(Rectangle())
+                                    .listRowSeparator(.hidden)
+                                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                    .listRowBackground(
                                         RoundedRectangle(cornerRadius: 10)
-                                            .stroke(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.2) : Color.clear, lineWidth: 1)
+                                            .fill(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.1) : Color.clear)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 10)
+                                                    .stroke(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.2) : Color.clear, lineWidth: 1)
+                                            )
+                                            .padding(.horizontal, 8)
                                     )
-                                    .padding(.horizontal, 8)
-                            )
                                     .onDrag {
                                         NSItemProvider(object: inspiration.id.uuidString as NSString)
                                     }
@@ -188,10 +191,10 @@ struct InspirationListView: View {
                             .onMove(perform: moveInspirations)
                         }
                         
+                        // 已完成部分（带折叠功能）
                         if !completedInspirations.isEmpty {
                             Section(isExpanded: $isCompletedExpanded) {
-                                ForEach(completedInspirations) {
-                                    inspiration in
+                                ForEach(completedInspirations) { inspiration in
                                     InspirationRowView(inspiration: inspiration, selectedInspiration: $selectedInspiration, searchText: $searchText, selection: $selection)
                                         .contentShape(Rectangle())
                                         .listRowSeparator(.hidden)
@@ -225,11 +228,11 @@ struct InspirationListView: View {
                             }
                         }
                     }
-                .listStyle(.sidebar) // 使用 sidebar 样式以获得更好的悬停/选中效果
+                .listStyle(.sidebar)
                 .scrollContentBackground(.hidden)
-                .tint(.secondary) // 关键：强制设置强调色为灰色，消除系统默认的紫色
+                .tint(.secondary)
                 .onTapGesture {
-                    // 点击列表空白处，取消所有编辑状态
+                    // 点击空白处取消输入框聚焦
                     NSApp.sendAction(#selector(NSTextField.resignFirstResponder), to: nil, from: nil)
                 }
             }
@@ -251,9 +254,8 @@ struct InspirationListView: View {
             Text("删除后将无法找回该灵感。")
         }
         .background {
-            // 隐形按钮用于处理删除快捷键
+            // 快捷键支持（隐形按钮实现）
             Group {
-                // Command + Backspace (标准 Mac 删除快捷键)
                 Button("") {
                     if let selected = selectedInspiration {
                         confirmDelete(selected)
@@ -261,7 +263,6 @@ struct InspirationListView: View {
                 }
                 .keyboardShortcut(.delete, modifiers: .command)
                 
-                // 单独的 Backspace/Delete 键 (在选中列表项时)
                 Button("") {
                     if let selected = selectedInspiration {
                         confirmDelete(selected)
@@ -274,6 +275,7 @@ struct InspirationListView: View {
         }
     }
 
+    /// 右键菜单构建
     @ViewBuilder
     private func rowContextMenu(_ inspiration: Inspiration) -> some View {
         Button {
@@ -287,6 +289,7 @@ struct InspirationListView: View {
         Button {
             inspiration.isCompleted.toggle()
             if inspiration.isCompleted {
+                // 自动关闭提醒
                 inspiration.reminderDate = nil
                 NotificationManager.shared.cancelNotification(for: inspiration)
             }
@@ -303,6 +306,8 @@ struct InspirationListView: View {
         }
     }
     
+    // MARK: - 辅助方法与逻辑
+    
     private var titleForSelection: String {
         if !searchText.isEmpty { return "搜索结果" }
         guard let filter = selection else { return "全部灵感" }
@@ -315,20 +320,20 @@ struct InspirationListView: View {
         }
     }
     
+    /// 快捷添加灵感逻辑
     private func quickAddInspiration() {
         let trimmed = quickInputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         
-        // 计算新的 orderIndex (放在最前面)
         let minOrder = pendingInspirations.map { $0.orderIndex }.min() ?? 0
         let newInspiration = Inspiration(title: trimmed, orderIndex: minOrder - 1)
         
         modelContext.insert(newInspiration)
-        try? modelContext.save() // 显式保存
+        try? modelContext.save()
         selectedInspiration = newInspiration
         quickInputText = ""
         
-        // 自动触发 AI 分类
+        // 异步调用 AI 进行自动分类
         Task {
             let availableCatNames = categories.map { $0.name }
             let category = await AIService.shared.classifyInspiration(title: newInspiration.title, notes: "", availableCategories: availableCatNames)
@@ -336,6 +341,7 @@ struct InspirationListView: View {
         }
     }
     
+    /// 标准添加灵感逻辑
     private func addInspiration() {
         let minOrder = pendingInspirations.map { $0.orderIndex }.min() ?? 0
         let newInspiration = Inspiration(title: "新灵感", orderIndex: minOrder - 1)
@@ -356,17 +362,18 @@ struct InspirationListView: View {
         inspirationToDelete = nil
     }
     
+    /// 手动拖拽排序逻辑
     private func moveInspirations(from source: IndexSet, to destination: Int) {
         var revisedItems = pendingInspirations
         revisedItems.move(fromOffsets: source, toOffset: destination)
         
-        // 更新所有受影响项的 orderIndex
         for reverseIndex in 0..<revisedItems.count {
             revisedItems[reverseIndex].orderIndex = reverseIndex
         }
     }
 }
 
+/// 列表单行视图组件
 struct InspirationRowView: View {
     @Bindable var inspiration: Inspiration
     @Binding var selectedInspiration: Inspiration?
@@ -378,7 +385,7 @@ struct InspirationRowView: View {
     
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            // 方形圆角勾选框
+            // 1. 复选框（勾选框）
             ZStack {
                 RoundedRectangle(cornerRadius: 4)
                     .stroke(inspiration.isCompleted ? Color(red: 0.1, green: 0.7, blue: 0.4) : Color.primary.opacity(0.2), lineWidth: 1.5)
@@ -408,132 +415,56 @@ struct InspirationRowView: View {
                  }
             }
             
-            // 标题
-            HStack(spacing: 6) {
-                if inspiration.isPinned {
-                    Image(systemName: "pin.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(Color(red: 1.0, green: 0.4, blue: 0.2)) // 鲜艳的能量橙
-                        .rotationEffect(.degrees(45))
-                }
+            // 2. 灵感标题展示
+            VStack(alignment: .leading, spacing: 2) {
+                Text(inspiration.title)
+                    .font(.system(size: 14, weight: .medium))
+                    .strikethrough(inspiration.isCompleted)
+                    .foregroundColor(inspiration.isCompleted ? .secondary : .primary)
+                    .lineLimit(1)
                 
-                if isEditing {
-                    TextField("灵感标题", text: $inspiration.title)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(inspiration.isCompleted ? .secondary.opacity(0.6) : .primary)
-                        .strikethrough(inspiration.isCompleted)
-                        .focused($isFocused)
-                        .onSubmit {
-                            saveChanges()
-                        }
-                        .onAppear {
-                            isFocused = true
-                        }
-                        .onChange(of: isFocused) { _, newValue in
-                            if !newValue && isEditing {
-                                saveChanges()
-                            }
-                        }
-                } else {
-                    Text(inspiration.title)
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(inspiration.isCompleted ? .secondary.opacity(0.6) : .primary)
-                        .strikethrough(inspiration.isCompleted)
-                        .onTapGesture(count: 2) {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                isEditing = true
-                            }
-                        }
+                // 辅助信息：分类和提醒图标
+                HStack(spacing: 8) {
+                    if !inspiration.category.isEmpty && inspiration.category != "未分类" {
+                        Text(inspiration.category)
+                            .font(.system(size: 10, weight: .medium))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(Color.primary.opacity(0.05))
+                            .cornerRadius(4)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    if inspiration.reminderDate != nil {
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(Color(red: 1.0, green: 0.4, blue: 0.2))
+                    }
+                    
+                    if inspiration.isPinned {
+                        Image(systemName: "pin.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(Color(red: 0.2, green: 0.5, blue: 0.9))
+                    }
                 }
             }
             
             Spacer()
             
-            // 右侧元数据
-            HStack(spacing: 12) {
-                if !inspiration.notes.isEmpty {
-                    Image(systemName: "text.alignleft")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary.opacity(0.5))
-                }
-                
-                if !inspiration.category.isEmpty && inspiration.category != "未分类" {
-                    Text(inspiration.category)
-                        .font(.system(size: 10, weight: .medium))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.primary.opacity(0.05))
-                        .cornerRadius(4)
-                        .foregroundColor(.secondary)
-                }
+            // 3. 鼠标悬停时显示的箭头图标
+            if isHovered || selectedInspiration?.id == inspiration.id {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.secondary.opacity(0.5))
             }
-            .opacity(isEditing ? 0 : 1)
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .contentShape(Rectangle())
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.2)) {
-                isHovered = hovering
-            }
+            isHovered = hovering
         }
-        .scaleEffect(isHovered && !isEditing ? 1.01 : 1.0)
         .onTapGesture {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                selectThisInspiration()
-            }
-        }
-        .onChange(of: selectedInspiration) { _, newValue in
-            // 如果选中的不是当前行，且当前行正在编辑，则保存并退出编辑
-            if isEditing && newValue?.id != inspiration.id {
-                saveChanges()
-            }
-        }
-    }
-    
-    private func saveChanges() {
-        isEditing = false
-        isFocused = false
-        try? inspiration.modelContext?.save()
-    }
-    
-    private func selectThisInspiration() {
-        selectedInspiration = inspiration
-        // 如果是在搜索状态下点击，自动跳转到对应分类
-        if !searchText.isEmpty {
-            if inspiration.isCompleted {
-                selection = .completed
-            } else if !inspiration.category.isEmpty {
-                selection = .category(inspiration.category)
-            } else {
-                selection = .all
-            }
-        }
-    }
-    
-    private var formattedDate: String {
-        let calendar = Calendar.current
-        if calendar.isDateInToday(inspiration.createdAt) {
-            return "今天"
-        } else if calendar.isDateInYesterday(inspiration.createdAt) {
-            return "昨天"
-        } else {
-            return inspiration.createdAt.formatted(.dateTime.month().day())
-        }
-    }
-    
-    private var dateColor: Color {
-        let calendar = Calendar.current
-        if inspiration.isCompleted {
-            return .secondary.opacity(0.4)
-        }
-        if calendar.isDateInToday(inspiration.createdAt) {
-            return .blue.opacity(0.8)
-        } else if calendar.isDateInYesterday(inspiration.createdAt) {
-            return .red.opacity(0.7)
-        } else {
-            return .secondary.opacity(0.6)
+            selectedInspiration = inspiration
         }
     }
 }

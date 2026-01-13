@@ -1,188 +1,71 @@
 import SwiftUI
-import SwiftData
 
+/// 设置视图：配置 AI 模型（如 API Key）和其他应用偏好
 struct SettingsView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var categories: [Category]
-    @Query private var inspirations: [Inspiration]
-    
-    @State private var newCategoryName: String = ""
-    @AppStorage("openai_api_key") private var apiKey: String = ""
-    @State private var editingCategory: Category?
-    @State private var editName: String = ""
+    @AppStorage("openai_api_key") private var apiKey: String = "" // 使用 AppStorage 持久化 API Key
+    @State private var showingSaveAlert = false                  // 保存成功提示
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                SectionView(title: "智谱 AI 配置", icon: "sparkles") {
+            VStack(alignment: .leading, spacing: 32) {
+                Text("偏好设置")
+                    .font(.system(size: 28, weight: .bold))
+                
+                // 1. AI 配置区域
+                VStack(alignment: .leading, spacing: 16) {
+                    Label("AI 智能配置", systemImage: "sparkles")
+                        .font(.headline)
+                    
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Image(systemName: "key.fill")
-                                .foregroundColor(.orange)
-                            SecureField("智谱 AI API Key", text: $apiKey)
-                                .textFieldStyle(.roundedBorder)
-                        }
-                        
-                        Text("已切换至智谱 GLM-4.5-Flash 模型。输入您的 Key 后将启用自动分类，如果不输入则使用内置默认 Key。")
-                            .font(.caption)
+                        Text("API Key (智谱 AI / OpenAI 兼容接口)")
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
+                        
+                        SecureField("请输入您的 API Key", text: $apiKey)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(maxWidth: 400)
+                        
+                        Text("用于灵感的智能自动分类。如果不填写，将使用系统内置演示 Key。")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary.opacity(0.8))
+                        
+                        Button("保存配置") {
+                            showingSaveAlert = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .padding(.top, 8)
                     }
                     .padding()
-                    .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.primary.opacity(0.03))
                     .cornerRadius(12)
                 }
                 
-                SectionView(title: "分类管理", icon: "folder.fill") {
-                    VStack(spacing: 12) {
-                        HStack {
-                            TextField("新分类名称", text: $newCategoryName)
-                                .textFieldStyle(.roundedBorder)
-                            Button(action: addCategory) {
-                                Label("添加", systemImage: "plus")
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .disabled(newCategoryName.isEmpty)
-                        }
-                        .padding(.bottom, 8)
-                        
-                        VStack(spacing: 1) {
-                            ForEach(categories) { category in
-                                CategoryRow(category: category, isDefault: isDefaultCategory(category.name)) {
-                                    editingCategory = category
-                                    editName = category.name
-                                } onDelete: {
-                                    let catName = category.name
-                                    // 将该分类下的所有灵感移动到"未分类"
-                                    for inspiration in inspirations {
-                                        if inspiration.category == catName {
-                                            inspiration.category = "未分类"
-                                        }
-                                    }
-                                    modelContext.delete(category)
-                                    try? modelContext.save()
-                                }
-                            }
-                        }
-                        .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
-                        .cornerRadius(12)
-                    }
-                }
-            }
-            .padding(24)
-        }
-        .onAppear {
-            AIService.shared.setApiKey(apiKey)
-        }
-        .onChange(of: apiKey) { _, newValue in
-            AIService.shared.setApiKey(newValue)
-        }
-        .sheet(item: $editingCategory) { category in
-            VStack(spacing: 16) {
-                Text("重命名分类")
-                    .font(.headline)
-                TextField("名称", text: $editName)
-                    .textFieldStyle(.roundedBorder)
-                HStack {
-                    Button("取消") { editingCategory = nil }
-                    Button("保存") {
-                        let oldName = category.name
-                        let newName = editName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        
-                        if !newName.isEmpty && oldName != newName {
-                            // 更新所有关联该分类的灵感
-                            for inspiration in inspirations {
-                                if inspiration.category == oldName {
-                                    inspiration.category = newName
-                                }
-                            }
-                            category.name = newName
-                            try? modelContext.save()
-                        }
-                        editingCategory = nil
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-            }
-            .padding()
-            .frame(width: 250)
-        }
-    }
-    
-    private func addCategory() {
-        let trimmed = newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty && !categories.contains(where: { $0.name == trimmed }) {
-            let maxOrder = categories.map { $0.orderIndex }.max() ?? 0
-            let newCat = Category(name: trimmed, orderIndex: maxOrder + 1)
-            modelContext.insert(newCat)
-            try? modelContext.save()
-            newCategoryName = ""
-        }
-    }
-    
-    private func isDefaultCategory(_ name: String) -> Bool {
-        name == "未分类"
-    }
-}
-
-struct SectionView<Content: View>: View {
-    let title: String
-    let icon: String
-    let content: Content
-    
-    init(title: String, icon: String, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.icon = icon
-        self.content = content()
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label(title, systemImage: icon)
-                .font(.headline)
-                .foregroundColor(.secondary)
-            content
-        }
-    }
-}
-
-struct CategoryRow: View {
-    let category: Category
-    let isDefault: Bool
-    let onEdit: () -> Void
-    let onDelete: () -> Void
-    
-    var body: some View {
-        HStack {
-            Image(systemName: category.icon)
-                .foregroundColor(.accentColor)
-                .frame(width: 24)
-            Text(category.name)
-            Spacer()
-            
-            if !isDefault {
-                HStack(spacing: 12) {
-                    Button(action: onEdit) {
-                        Image(systemName: "pencil")
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
+                // 2. 关于应用
+                VStack(alignment: .leading, spacing: 16) {
+                    Label("关于灵机一记", systemImage: "info.circle.fill")
+                        .font(.headline)
                     
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red.opacity(0.7))
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("版本: 1.0.0 (Build 20240113)")
+                        Text("灵机一记是一款专为 macOS 设计的轻量级灵感记录工具，支持 AI 智能分类与时间提醒。")
+                            .foregroundColor(.secondary)
+                            .lineSpacing(4)
                     }
-                    .buttonStyle(.plain)
+                    .font(.system(size: 13))
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.primary.opacity(0.03))
+                    .cornerRadius(12)
                 }
-            } else {
-                Text("系统")
-                    .font(.caption2)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(4)
+                
+                Spacer()
             }
+            .padding(40)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .background(Color(nsColor: .textBackgroundColor))
+        .alert("设置已保存", isPresented: $showingSaveAlert) {
+            Button("好", role: .cancel) { }
+        }
     }
 }

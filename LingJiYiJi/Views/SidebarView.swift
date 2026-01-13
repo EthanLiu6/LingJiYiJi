@@ -2,33 +2,37 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
+/// 侧边栏导航项枚举
 enum NavigationItem: Hashable {
-    case all
-    case completed
-    case category(String)
-    case stats
-    case settings
+    case all                // 全部灵感
+    case completed          // 已完成
+    case category(String)   // 具体分类（关联分类名称）
+    case stats              // 数据统计
+    case settings           // 偏好设置
 }
 
 struct SidebarView: View {
     @Environment(\.modelContext) private var modelContext
-    @Binding var selection: NavigationItem?
-    @Binding var selectedInspiration: Inspiration?
+    @Binding var selection: NavigationItem?           // 与父视图共享的选中状态
+    @Binding var selectedInspiration: Inspiration?    // 与父视图共享的选中灵感项
+    
+    // 从数据库获取分类（按 orderIndex 排序）和灵感数据
     @Query(sort: \Category.orderIndex) private var categories: [Category]
     @Query private var inspirations: [Inspiration]
-    @State private var showingAddCategory = false
-    @State private var newCategoryName = ""
-    @State private var editingCategory: Category?
-    @State private var editName: String = ""
     
-    @State private var hoveredItem: NavigationItem?
+    @State private var showingAddCategory = false     // 控制新建分类弹窗
+    @State private var newCategoryName = ""           // 新分类输入框文本
+    @State private var editingCategory: Category?     // 当前正在重命名的分类
+    @State private var editName: String = ""          // 重命名输入框文本
+    @State private var hoveredItem: NavigationItem?   // 鼠标悬停项
 
+    /// 辅助方法：构建统一风格的侧边栏链接按钮
     @ViewBuilder
     private func sidebarLink(title: String, icon: String, value: NavigationItem, count: Int? = nil) -> some View {
         Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 if selection != value {
-                    selectedInspiration = nil // 仅在切换分类时清空详情
+                    selectedInspiration = nil // 切换分类时，清空当前选中的灵感详情
                     selection = value
                 }
             }
@@ -43,6 +47,7 @@ struct SidebarView: View {
                         .foregroundColor(selection == value ? .white : Color(red: 0.2, green: 0.5, blue: 0.9))
                 }
                 Spacer()
+                // 显示该分类下的灵感数量
                 if let count = count {
                     Text("\(count)")
                         .font(.system(size: 11, weight: .bold))
@@ -85,7 +90,7 @@ struct SidebarView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // 品牌 Logo 区域
+            // 顶部 Logo 与品牌区域
             HStack(spacing: 12) {
                 Image("AppLogo")
                     .resizable()
@@ -115,7 +120,7 @@ struct SidebarView: View {
                 }
                 
                 Section {
-                    // 1. 固定展示“未分类”在首位
+                    // 1. 固定展示“未分类”在分类列表首位
                     if let unclassified = categories.first(where: { $0.name == "未分类" }) {
                         sidebarLink(title: unclassified.name, icon: unclassified.icon, value: .category(unclassified.name), count: inspirations.filter { $0.category == unclassified.name }.count)
                             .onDrop(of: [.text], isTargeted: nil) { providers in
@@ -123,7 +128,7 @@ struct SidebarView: View {
                             }
                     }
                     
-                    // 2. 展示其他分类
+                    // 2. 动态展示用户自定义的其他分类
                     ForEach(categories, id: \.persistentModelID) { category in
                         if category.name != "未分类" {
                             sidebarLink(title: category.name, icon: category.icon, value: .category(category.name), count: inspirations.filter { $0.category == category.name }.count)
@@ -170,11 +175,11 @@ struct SidebarView: View {
             }
             .listStyle(.sidebar)
             .background(.ultraThinMaterial)
-            .tint(.secondary) // 强制设置侧边栏强调色为灰色
+            .tint(.secondary)
             .navigationTitle("灵机一记")
         }
         .sheet(isPresented: $showingAddCategory) {
-            // ... (rest of the file remains same)
+            // 新建分类的浮层视图
             VStack(spacing: 16) {
                 Text("新建分类")
                     .font(.headline)
@@ -202,18 +207,27 @@ struct SidebarView: View {
             .frame(width: 250)
         }
         .sheet(item: $editingCategory) { category in
+            // 重命名分类的浮层视图
             VStack(spacing: 16) {
                 Text("重命名分类")
                     .font(.headline)
-                TextField("名称", text: $editName)
+                
+                TextField("新名称", text: $editName)
                     .textFieldStyle(.roundedBorder)
+                    .frame(width: 200)
+                
                 HStack {
-                    Button("取消") { editingCategory = nil }
-                    Button("保存") {
-                        category.name = editName
+                    Button("取消") {
                         editingCategory = nil
                     }
+                    .keyboardShortcut(.escape, modifiers: [])
+                    
+                    Button("保存") {
+                        renameCategory(category)
+                    }
                     .buttonStyle(.borderedProminent)
+                    .disabled(editName.isEmpty)
+                    .keyboardShortcut(.return, modifiers: [])
                 }
             }
             .padding()
@@ -221,33 +235,14 @@ struct SidebarView: View {
         }
     }
     
+    // MARK: - 逻辑方法
+    
+    /// 判断是否为系统预设分类（不可删除/重命名）
     private func isDefaultCategory(_ name: String) -> Bool {
-        name == "未分类"
+        return name == "未分类"
     }
     
-    private func addCategory() {
-        let trimmed = newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty {
-            // 检查是否已存在同名分类（由于 UI 层面可能滞后）
-            if !categories.contains(where: { $0.name == trimmed }) {
-                let newCat = Category(name: trimmed, orderIndex: categories.count)
-                modelContext.insert(newCat)
-                try? modelContext.save()
-            }
-            newCategoryName = ""
-            showingAddCategory = false
-        }
-    }
-    
-    private func moveCategories(from source: IndexSet, to destination: Int) {
-        var revisedItems = categories
-        revisedItems.move(fromOffsets: source, toOffset: destination)
-        
-        for index in 0..<revisedItems.count {
-            revisedItems[index].orderIndex = index
-        }
-    }
-    
+    /// 执行删除分类逻辑：同时将灵感归位
     private func deleteCategory(_ category: Category) {
         let categoryName = category.name
         
@@ -263,23 +258,72 @@ struct SidebarView: View {
             selection = .all
         }
         
-        // 3. 删除分类模型
+        // 3. 删除分类模型并保存
         modelContext.delete(category)
-        
-        // 4. 保存更改
         try? modelContext.save()
     }
     
+    /// 添加新分类
+    private func addCategory() {
+        let trimmedName = newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        
+        // 检查是否重名
+        if !categories.contains(where: { $0.name == trimmedName }) {
+            let newCat = Category(name: trimmedName, orderIndex: categories.count)
+            modelContext.insert(newCat)
+            try? modelContext.save()
+        }
+        
+        newCategoryName = ""
+        showingAddCategory = false
+    }
+    
+    /// 重命名分类并同步更新所属灵感的分类属性
+    private func renameCategory(_ category: Category) {
+        let oldName = category.name
+        let trimmedName = editName.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedName.isEmpty, trimmedName != oldName else {
+            editingCategory = nil
+            return
+        }
+        
+        // 更新灵感中的分类记录
+        for inspiration in inspirations {
+            if inspiration.category == oldName {
+                inspiration.category = trimmedName
+            }
+        }
+        
+        category.name = trimmedName
+        try? modelContext.save()
+        editingCategory = nil
+    }
+    
+    /// 处理侧边栏分类的拖拽排序
+    private func moveCategories(from source: IndexSet, to destination: Int) {
+        var revisedItems = categories
+        revisedItems.move(fromOffsets: source, toOffset: destination)
+        
+        for reverseIndex in 0..<revisedItems.count {
+            revisedItems[reverseIndex].orderIndex = reverseIndex
+        }
+        try? modelContext.save()
+    }
+    
+    /// 处理将灵感拖拽到分类上的“归类”操作
     private func handleDrop(providers: [NSItemProvider], to category: Category) -> Bool {
         guard let provider = providers.first else { return false }
         
         provider.loadObject(ofClass: NSString.self) { (idString, error) in
             if let idString = idString as? String, let uuid = UUID(uuidString: idString) {
                 DispatchQueue.main.async {
-                    // 查找对应的灵感并更新分类
                     let descriptor = FetchDescriptor<Inspiration>(predicate: #Predicate { $0.id == uuid })
                     if let inspiration = try? modelContext.fetch(descriptor).first {
-                        inspiration.category = category.name
+                        withAnimation(.spring()) {
+                            inspiration.category = category.name
+                        }
                         try? modelContext.save()
                     }
                 }
