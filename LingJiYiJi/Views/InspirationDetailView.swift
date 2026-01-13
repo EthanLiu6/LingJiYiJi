@@ -116,6 +116,7 @@ struct InspirationDetailView: View {
                             .foregroundColor(inspiration.reminderDate != nil ? (inspiration.isCompleted ? .secondary : Color(red: 1.0, green: 0.4, blue: 0.2)) : .secondary)
                     }
                     .toggleStyle(.switch)
+                    .tint(Color(red: 1.0, green: 0.4, blue: 0.2))
                     .disabled(inspiration.isCompleted)
                     
                     if let reminderDate = inspiration.reminderDate {
@@ -150,6 +151,7 @@ struct InspirationDetailView: View {
             
             Section("状态") {
                 Toggle("已完成", isOn: $inspiration.isCompleted)
+                    .tint(.green)
                     .onChange(of: inspiration.isCompleted) { oldValue, newValue in
                         if newValue {
                             NotificationManager.shared.cancelNotification(for: inspiration)
@@ -158,6 +160,7 @@ struct InspirationDetailView: View {
                         }
                     }
                 Toggle("置顶", isOn: $inspiration.isPinned)
+                    .tint(.blue)
                 
                 LabeledContent("创建时间") {
                     Text(inspiration.createdAt, style: .date)
@@ -192,8 +195,12 @@ struct InspirationDetailView: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(Color.primary.opacity(0.05))
+            .background(Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.1))
             .cornerRadius(6)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.2), lineWidth: 0.5)
+            )
         }
         .buttonStyle(.plain)
     }
