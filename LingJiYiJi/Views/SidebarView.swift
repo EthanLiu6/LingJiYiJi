@@ -210,18 +210,7 @@ struct SidebarView: View {
                 HStack {
                     Button("取消") { editingCategory = nil }
                     Button("保存") {
-                        let oldName = category.name
-                        let newName = editName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !newName.isEmpty && oldName != newName {
-                            // 更新所有属于该分类的灵感
-                            for inspiration in inspirations {
-                                if inspiration.category == oldName {
-                                    inspiration.category = newName
-                                }
-                            }
-                            category.name = newName
-                            try? modelContext.save()
-                        }
+                        category.name = editName
                         editingCategory = nil
                     }
                     .buttonStyle(.borderedProminent)
@@ -250,18 +239,6 @@ struct SidebarView: View {
         }
     }
     
-    private func deleteCategory(_ category: Category) {
-        let nameToDelete = category.name
-        // 将属于该分类的所有灵感移至“未分类”
-        for inspiration in inspirations {
-            if inspiration.category == nameToDelete {
-                inspiration.category = "未分类"
-            }
-        }
-        modelContext.delete(category)
-        try? modelContext.save()
-    }
-    
     private func moveCategories(from source: IndexSet, to destination: Int) {
         var revisedItems = categories
         revisedItems.move(fromOffsets: source, toOffset: destination)
@@ -269,6 +246,28 @@ struct SidebarView: View {
         for index in 0..<revisedItems.count {
             revisedItems[index].orderIndex = index
         }
+    }
+    
+    private func deleteCategory(_ category: Category) {
+        let categoryName = category.name
+        
+        // 1. 将该分类下的所有灵感移动到“未分类”
+        for inspiration in inspirations {
+            if inspiration.category == categoryName {
+                inspiration.category = "未分类"
+            }
+        }
+        
+        // 2. 如果当前选中了该分类，切换回“全部灵感”
+        if case .category(let name) = selection, name == categoryName {
+            selection = .all
+        }
+        
+        // 3. 删除分类模型
+        modelContext.delete(category)
+        
+        // 4. 保存更改
+        try? modelContext.save()
     }
     
     private func handleDrop(providers: [NSItemProvider], to category: Category) -> Bool {
