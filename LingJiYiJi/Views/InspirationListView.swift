@@ -201,7 +201,7 @@ struct InspirationListView: View {
                             HStack {
                                 Image(systemName: "pin.fill")
                                     .font(.system(size: 10))
-                                Text("置顶")
+                                Text("已置顶")
                             }
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.secondary)
@@ -242,7 +242,7 @@ struct InspirationListView: View {
                         }
                     } header: {
                         if !pinnedInspirations.isEmpty {
-                            Text("灵感")
+                            Text("未置顶")
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.secondary)
                                 .padding(.top, 8)
