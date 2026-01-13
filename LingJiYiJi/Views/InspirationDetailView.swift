@@ -32,7 +32,7 @@ struct InspirationDetailView: View {
                             .font(.system(size: 14))
                             .scrollContentBackground(.hidden)
                     }
-                    .frame(minHeight: 200)
+                    .frame(minHeight: 100)
                     .padding(6)
                     .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
                     .cornerRadius(8)
