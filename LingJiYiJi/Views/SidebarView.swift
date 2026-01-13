@@ -13,12 +13,75 @@ enum NavigationItem: Hashable {
 struct SidebarView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var selection: NavigationItem?
+    @Binding var selectedInspiration: Inspiration?
     @Query(sort: \Category.orderIndex) private var categories: [Category]
     @Query private var inspirations: [Inspiration]
     @State private var showingAddCategory = false
     @State private var newCategoryName = ""
     @State private var editingCategory: Category?
     @State private var editName: String = ""
+    
+    @State private var hoveredItem: NavigationItem?
+
+    @ViewBuilder
+    private func sidebarLink(title: String, icon: String, value: NavigationItem, count: Int? = nil) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                if selection != value {
+                    selectedInspiration = nil // 仅在切换分类时清空详情
+                    selection = value
+                }
+            }
+        } label: {
+            HStack {
+                Label {
+                    Text(title)
+                        .foregroundColor(selection == value ? .white : .primary.opacity(0.8))
+                } icon: {
+                    Image(systemName: icon)
+                        .symbolRenderingMode(.monochrome)
+                        .foregroundColor(selection == value ? .white : Color(red: 0.2, green: 0.5, blue: 0.9))
+                }
+                Spacer()
+                if let count = count {
+                    Text("\(count)")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(selection == value ? .white : Color(red: 0.2, green: 0.5, blue: 0.9))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1)
+                        .background(selection == value ? .white.opacity(0.2) : Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.1))
+                        .cornerRadius(6)
+                }
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(hoveredItem == value ? 1.02 : 1.0)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                hoveredItem = hovering ? value : nil
+            }
+        }
+        .listRowBackground(
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(selection == value ? Color(red: 0.2, green: 0.5, blue: 0.9) : (hoveredItem == value ? Color.primary.opacity(0.05) : Color.clear))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                
+                if selection == value {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(red: 0.2, green: 0.5, blue: 0.9))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .shadow(color: Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.3), radius: 4, x: 0, y: 2)
+                }
+            }
+        )
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -31,12 +94,13 @@ struct SidebarView: View {
                     .cornerRadius(10)
                     .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
                 
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("灵机一记")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.primary)
                     Text("记录你的每一个灵感")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary.opacity(0.7))
                 }
                 
                 Spacer()
@@ -44,52 +108,44 @@ struct SidebarView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 20)
             
-            List(selection: $selection) {
+            List {
                 Section("我的灵感") {
-                    NavigationLink(value: NavigationItem.all) {
-                        Label("全部灵感", systemImage: "lightbulb.fill")
-                    }
-                    NavigationLink(value: NavigationItem.completed) {
-                        Label("已完成", systemImage: "checkmark.circle.fill")
-                    }
+                    sidebarLink(title: "全部灵感", icon: "lightbulb.fill", value: .all, count: inspirations.count)
+                    sidebarLink(title: "已完成", icon: "checkmark.circle.fill", value: .completed, count: inspirations.filter { $0.isCompleted }.count)
                 }
                 
                 Section {
                     // 1. 固定展示“未分类”在首位
                     if let unclassified = categories.first(where: { $0.name == "未分类" }) {
-                        NavigationLink(value: NavigationItem.category(unclassified.name)) {
-                            Label(unclassified.name, systemImage: unclassified.icon)
-                        }
-                        .onDrop(of: [.text], isTargeted: nil) { providers in
-                            handleDrop(providers: providers, to: unclassified)
-                        }
+                        sidebarLink(title: unclassified.name, icon: unclassified.icon, value: .category(unclassified.name), count: inspirations.filter { $0.category == unclassified.name }.count)
+                            .onDrop(of: [.text], isTargeted: nil) { providers in
+                                handleDrop(providers: providers, to: unclassified)
+                            }
                     }
                     
                     // 2. 展示其他分类
                     ForEach(categories, id: \.persistentModelID) { category in
                         if category.name != "未分类" {
-                            NavigationLink(value: NavigationItem.category(category.name)) {
-                                Label(category.name, systemImage: category.icon)
-                            }
-                            .onDrop(of: [.text], isTargeted: nil) { providers in
-                                handleDrop(providers: providers, to: category)
-                            }
-                            .contextMenu {
-                                if !isDefaultCategory(category.name) {
-                                    Button {
-                                        editingCategory = category
-                                        editName = category.name
-                                    } label: {
-                                        Label("重命名", systemImage: "pencil")
-                                    }
-                                    
-                                    Button(role: .destructive) {
-                                        modelContext.delete(category)
-                                    } label: {
-                                        Label("删除", systemImage: "trash")
+                            sidebarLink(title: category.name, icon: category.icon, value: .category(category.name), count: inspirations.filter { $0.category == category.name }.count)
+                                .onDrop(of: [.text], isTargeted: nil) { providers in
+                                    handleDrop(providers: providers, to: category)
+                                }
+                                .contextMenu {
+                                    if !isDefaultCategory(category.name) {
+                                        Button {
+                                            editingCategory = category
+                                            editName = category.name
+                                        } label: {
+                                            Label("重命名", systemImage: "pencil")
+                                        }
+                                        
+                                        Button(role: .destructive) {
+                                            modelContext.delete(category)
+                                        } label: {
+                                            Label("删除", systemImage: "trash")
+                                        }
                                     }
                                 }
-                            }
                         }
                     }
                     .onMove(perform: moveCategories)
@@ -108,20 +164,17 @@ struct SidebarView: View {
                 }
                 
                 Section("视图") {
-                    NavigationLink(value: NavigationItem.stats) {
-                        Label("统计报表", systemImage: "chart.pie.fill")
-                    }
-                    NavigationLink(value: NavigationItem.settings) {
-                        Label("偏好设置", systemImage: "gearshape.fill")
-                    }
+                    sidebarLink(title: "统计报表", icon: "chart.pie.fill", value: .stats)
+                    sidebarLink(title: "偏好设置", icon: "gearshape.fill", value: .settings)
                 }
             }
             .listStyle(.sidebar)
             .background(.ultraThinMaterial)
-            .accentColor(.primary)
+            .tint(.secondary) // 强制设置侧边栏强调色为灰色
             .navigationTitle("灵机一记")
         }
         .sheet(isPresented: $showingAddCategory) {
+            // ... (rest of the file remains same)
             VStack(spacing: 16) {
                 Text("新建分类")
                     .font(.headline)

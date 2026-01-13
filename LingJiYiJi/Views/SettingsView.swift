@@ -4,6 +4,7 @@ import SwiftData
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var categories: [Category]
+    @Query private var inspirations: [Inspiration]
     
     @State private var newCategoryName: String = ""
     @AppStorage("openai_api_key") private var apiKey: String = ""
@@ -50,7 +51,15 @@ struct SettingsView: View {
                                     editingCategory = category
                                     editName = category.name
                                 } onDelete: {
+                                    let catName = category.name
+                                    // 将该分类下的所有灵感移动到"未分类"
+                                    for inspiration in inspirations {
+                                        if inspiration.category == catName {
+                                            inspiration.category = "未分类"
+                                        }
+                                    }
                                     modelContext.delete(category)
+                                    try? modelContext.save()
                                 }
                             }
                         }
@@ -76,7 +85,19 @@ struct SettingsView: View {
                 HStack {
                     Button("取消") { editingCategory = nil }
                     Button("保存") {
-                        category.name = editName
+                        let oldName = category.name
+                        let newName = editName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        
+                        if !newName.isEmpty && oldName != newName {
+                            // 更新所有关联该分类的灵感
+                            for inspiration in inspirations {
+                                if inspiration.category == oldName {
+                                    inspiration.category = newName
+                                }
+                            }
+                            category.name = newName
+                            try? modelContext.save()
+                        }
                         editingCategory = nil
                     }
                     .buttonStyle(.borderedProminent)

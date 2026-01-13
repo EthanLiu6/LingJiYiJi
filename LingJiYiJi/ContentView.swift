@@ -27,12 +27,22 @@ struct ContentView: View {
     }
     
     var body: some View {
-        NavigationSplitView {
-            SidebarView(selection: $selection)
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            SidebarView(selection: $selection, selectedInspiration: $selectedInspiration)
                 .frame(minWidth: 200)
+        } content: {
+            if isListSelected {
+                InspirationListView(selectedInspiration: $selectedInspiration, selection: $selection)
+                    .navigationSplitViewColumnWidth(min: 300, ideal: 400)
+            } else {
+                Text("") // 占位，当选择统计或设置时，中间栏留空或隐藏
+                    .navigationSplitViewColumnWidth(0)
+            }
         } detail: {
             detailView
         }
+        .frame(minWidth: 900, maxWidth: .infinity, minHeight: 320, maxHeight: .infinity)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selection)
         .onAppear {
             setupDefaultCategories()
             NotificationManager.shared.requestAuthorization()
@@ -45,30 +55,26 @@ struct ContentView: View {
     @ViewBuilder
     private var detailView: some View {
         if isListSelected {
-            inspirationListSection
-        } else {
-            utilitySection
-        }
-    }
-    
-    @ViewBuilder
-    private var inspirationListSection: some View {
-        HSplitView {
-            InspirationListView(selectedInspiration: $selectedInspiration, filter: selection)
-                .frame(minWidth: 300, maxWidth: 450)
-            
             ZStack {
                 if let inspiration = selectedInspiration {
-                    InspirationDetailView(inspiration: inspiration, columnVisibility: .constant(.all))
+                    InspirationDetailView(inspiration: inspiration)
                         .id(inspiration.id)
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .bottom).combined(with: .scale(scale: 0.98))),
+                            removal: .opacity.combined(with: .scale(scale: 0.98))
+                        ))
                 } else {
                     ContentUnavailableView("请选择一个灵感", systemImage: "lightbulb", description: Text("从列表中选择一个灵感来查看详情或编辑"))
+                        .transition(.opacity)
                 }
             }
+            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: selectedInspiration?.id)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .windowBackgroundColor))
+        } else {
+            utilitySection
+                .transition(.opacity.combined(with: .move(edge: .trailing)))
         }
-        .ignoresSafeArea() // 关键：让 HSplitView 填满整个详情区域，不被顶部导航栏占位
     }
     
     @ViewBuilder

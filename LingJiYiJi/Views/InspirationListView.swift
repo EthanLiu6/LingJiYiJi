@@ -7,11 +7,14 @@ struct InspirationListView: View {
     @Query private var inspirations: [Inspiration]
     @Query private var categories: [Category]
     @Binding var selectedInspiration: Inspiration?
-    var filter: NavigationItem?
+    @Binding var selection: NavigationItem?
     
     @State private var searchText: String = ""
     @State private var quickInputText: String = ""
     @State private var isCompletedExpanded: Bool = true
+    @State private var isAddHovered: Bool = false
+    @State private var showingDeleteConfirmation = false
+    @State private var inspirationToDelete: Inspiration?
     
     var pendingInspirations: [Inspiration] {
         filteredInspirations.filter { !$0.isCompleted }
@@ -34,10 +37,18 @@ struct InspirationListView: View {
     }
     
     var filteredInspirations: [Inspiration] {
+        // 如果正在搜索，展示全局搜索结果
+        if !searchText.isEmpty {
+            return inspirations.filter { 
+                $0.title.localizedCaseInsensitiveContains(searchText) || 
+                $0.notes.localizedCaseInsensitiveContains(searchText) 
+            }
+        }
+        
         var filtered = inspirations
         
-        // 侧边栏导航过滤
-        if let filter = filter {
+        // 如果没有搜索，应用侧边栏导航过滤
+        if let filter = selection {
             switch filter {
             case .all:
                 break
@@ -47,14 +58,6 @@ struct InspirationListView: View {
                 filtered = filtered.filter { $0.category == cat }
             case .stats, .settings:
                 break
-            }
-        }
-        
-        // 搜索过滤
-        if !searchText.isEmpty {
-            filtered = filtered.filter { 
-                $0.title.localizedCaseInsensitiveContains(searchText) || 
-                $0.notes.localizedCaseInsensitiveContains(searchText) 
             }
         }
         
@@ -68,17 +71,32 @@ struct InspirationListView: View {
                 Text(titleForSelection)
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.primary)
+                
                 Spacer()
                 
                 Button(action: addInspiration) {
                     Image(systemName: "plus")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .padding(6)
-                        .background(Color.primary.opacity(0.05))
+                        .foregroundColor(.white)
+                        .padding(8)
+                        .background(
+                            LinearGradient(
+                                colors: [Color(red: 0.2, green: 0.5, blue: 0.9), Color(red: 0.3, green: 0.6, blue: 1.0)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                         .clipShape(Circle())
+                        .shadow(color: Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.3), radius: 4, x: 0, y: 2)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PlainButtonStyle())
+                .scaleEffect(isAddHovered ? 1.1 : 1.0)
+                .onHover { hovering in
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                        isAddHovered = hovering
+                    }
+                }
+                .help("新建灵感 (Cmd+N)")
             }
             .padding(.horizontal, 24)
             .padding(.top, 24)
@@ -91,7 +109,7 @@ struct InspirationListView: View {
                         .font(.system(size: 16))
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [.purple, .blue],
+                                colors: [Color(red: 0.4, green: 0.5, blue: 0.9), Color(red: 0.6, green: 0.4, blue: 0.8)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -107,22 +125,25 @@ struct InspirationListView: View {
                     if !quickInputText.isEmpty {
                         Button(action: quickAddInspiration) {
                             Image(systemName: "arrow.up.circle.fill")
-                                .font(.system(size: 20))
-                                .foregroundStyle(.primary)
+                                .font(.system(size: 22))
+                                .foregroundStyle(Color(red: 0.4, green: 0.5, blue: 0.9))
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color(nsColor: .controlBackgroundColor).opacity(0.6))
-                .cornerRadius(10)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(nsColor: .textBackgroundColor).opacity(0.8))
+                        .shadow(color: .black.opacity(0.03), radius: 4, x: 0, y: 2)
+                )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
                 )
                 .padding(.horizontal, 24)
-                .padding(.bottom, 20)
+                .padding(.bottom, 24)
                 
                 Divider()
                     .padding(.horizontal, 24)
@@ -141,22 +162,28 @@ struct InspirationListView: View {
                 .frame(maxWidth: .infinity)
                 .background(Color(nsColor: .windowBackgroundColor))
             } else {
-                List(selection: $selectedInspiration) {
+                List {
                         Section {
                             ForEach(pendingInspirations) { inspiration in
-                                InspirationRowView(inspiration: inspiration)
-                                    .tag(inspiration)
-                                    .listRowSeparator(.hidden)
-                                    .listRowInsets(EdgeInsets(top: 2, leading: 12, bottom: 2, trailing: 12))
-                                    .onTapGesture {
-                                    selectedInspiration = inspiration
-                                }
-                                .onDrag {
-                                    NSItemProvider(object: inspiration.id.uuidString as NSString)
-                                }
-                                .contextMenu {
-                                    rowContextMenu(inspiration)
-                                }
+                        InspirationRowView(inspiration: inspiration, selectedInspiration: $selectedInspiration, searchText: $searchText, selection: $selection)
+                            .contentShape(Rectangle())
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            .listRowBackground(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.1) : Color.clear)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.2) : Color.clear, lineWidth: 1)
+                                    )
+                                    .padding(.horizontal, 8)
+                            )
+                                    .onDrag {
+                                        NSItemProvider(object: inspiration.id.uuidString as NSString)
+                                    }
+                                    .contextMenu {
+                                        rowContextMenu(inspiration)
+                                    }
                             }
                             .onMove(perform: moveInspirations)
                         }
@@ -165,13 +192,19 @@ struct InspirationListView: View {
                             Section(isExpanded: $isCompletedExpanded) {
                                 ForEach(completedInspirations) {
                                     inspiration in
-                                    InspirationRowView(inspiration: inspiration)
-                                        .tag(inspiration)
+                                    InspirationRowView(inspiration: inspiration, selectedInspiration: $selectedInspiration, searchText: $searchText, selection: $selection)
+                                        .contentShape(Rectangle())
                                         .listRowSeparator(.hidden)
-                                        .listRowInsets(EdgeInsets(top: 2, leading: 12, bottom: 2, trailing: 12))
-                                        .onTapGesture {
-                                            selectedInspiration = inspiration
-                                        }
+                                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                        .listRowBackground(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .fill(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.1) : Color.clear)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 10)
+                                                        .stroke(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.2) : Color.clear, lineWidth: 1)
+                                                )
+                                                .padding(.horizontal, 8)
+                                        )
                                         .onDrag {
                                             NSItemProvider(object: inspiration.id.uuidString as NSString)
                                         }
@@ -194,20 +227,48 @@ struct InspirationListView: View {
                     }
                 .listStyle(.sidebar) // 使用 sidebar 样式以获得更好的悬停/选中效果
                 .scrollContentBackground(.hidden)
+                .tint(.secondary) // 关键：强制设置强调色为灰色，消除系统默认的紫色
+                .onTapGesture {
+                    // 点击列表空白处，取消所有编辑状态
+                    NSApp.sendAction(#selector(NSTextField.resignFirstResponder), to: nil, from: nil)
+                }
             }
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .navigationTitle("")
         .searchable(text: $searchText, placement: .toolbar, prompt: "搜索灵感...")
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: filteredInspirations)
-        .background {
-            // 隐形按钮用于处理 Cmd+Backspace 删除操作
-            Button("") {
-                if let selected = selectedInspiration {
-                    deleteInspiration(selected)
+        .alert("确定要删除吗？", isPresented: $showingDeleteConfirmation) {
+            Button("删除", role: .destructive) {
+                if let inspiration = inspirationToDelete {
+                    deleteInspiration(inspiration)
                 }
             }
-            .keyboardShortcut(.delete, modifiers: .command)
+            Button("取消", role: .cancel) {
+                inspirationToDelete = nil
+            }
+        } message: {
+            Text("删除后将无法找回该灵感。")
+        }
+        .background {
+            // 隐形按钮用于处理删除快捷键
+            Group {
+                // Command + Backspace (标准 Mac 删除快捷键)
+                Button("") {
+                    if let selected = selectedInspiration {
+                        confirmDelete(selected)
+                    }
+                }
+                .keyboardShortcut(.delete, modifiers: .command)
+                
+                // 单独的 Backspace/Delete 键 (在选中列表项时)
+                Button("") {
+                    if let selected = selectedInspiration {
+                        confirmDelete(selected)
+                    }
+                }
+                .keyboardShortcut(.delete, modifiers: [])
+            }
             .opacity(0)
             .allowsHitTesting(false)
         }
@@ -232,14 +293,15 @@ struct InspirationListView: View {
         Divider()
         
         Button(role: .destructive) {
-            deleteInspiration(inspiration)
+            confirmDelete(inspiration)
         } label: {
             Label("删除", systemImage: "trash")
         }
     }
     
     private var titleForSelection: String {
-        guard let filter = filter else { return "全部灵感" }
+        if !searchText.isEmpty { return "搜索结果" }
+        guard let filter = selection else { return "全部灵感" }
         switch filter {
         case .all: return "全部灵感"
         case .completed: return "已完成"
@@ -277,11 +339,17 @@ struct InspirationListView: View {
         selectedInspiration = newInspiration
     }
     
+    private func confirmDelete(_ inspiration: Inspiration) {
+        inspirationToDelete = inspiration
+        showingDeleteConfirmation = true
+    }
+    
     private func deleteInspiration(_ inspiration: Inspiration) {
         modelContext.delete(inspiration)
         if selectedInspiration?.id == inspiration.id {
             selectedInspiration = nil
         }
+        inspirationToDelete = nil
     }
     
     private func moveInspirations(from source: IndexSet, to destination: Int) {
@@ -297,23 +365,29 @@ struct InspirationListView: View {
 
 struct InspirationRowView: View {
     @Bindable var inspiration: Inspiration
+    @Binding var selectedInspiration: Inspiration?
+    @Binding var searchText: String
+    @Binding var selection: NavigationItem?
+    @FocusState private var isFocused: Bool
+    @State private var isEditing: Bool = false
+    @State private var isHovered: Bool = false
     
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             // 方形圆角勾选框
             ZStack {
                 RoundedRectangle(cornerRadius: 4)
-                    .stroke(inspiration.isCompleted ? Color.green.opacity(0.5) : Color.primary.opacity(0.2), lineWidth: 1.5)
+                    .stroke(inspiration.isCompleted ? Color(red: 0.1, green: 0.7, blue: 0.4) : Color.primary.opacity(0.2), lineWidth: 1.5)
                     .frame(width: 18, height: 18)
                     .background(
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(inspiration.isCompleted ? Color.green.opacity(0.1) : Color.clear)
+                            .fill(inspiration.isCompleted ? Color(red: 0.1, green: 0.7, blue: 0.4).opacity(0.1) : Color.clear)
                     )
                 
                 if inspiration.isCompleted {
                     Image(systemName: "checkmark")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.green)
+                        .foregroundColor(Color(red: 0.1, green: 0.7, blue: 0.4))
                 }
             }
             .contentShape(Rectangle())
@@ -332,37 +406,103 @@ struct InspirationRowView: View {
                 if inspiration.isPinned {
                     Image(systemName: "pin.fill")
                         .font(.system(size: 10))
-                        .foregroundColor(.orange.opacity(0.8))
+                        .foregroundColor(Color(red: 1.0, green: 0.4, blue: 0.2)) // 鲜艳的能量橙
                         .rotationEffect(.degrees(45))
                 }
                 
-                Text(inspiration.title)
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(inspiration.isCompleted ? .secondary.opacity(0.6) : .primary)
-                    .strikethrough(inspiration.isCompleted)
+                if isEditing {
+                    TextField("灵感标题", text: $inspiration.title)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(inspiration.isCompleted ? .secondary.opacity(0.6) : .primary)
+                        .strikethrough(inspiration.isCompleted)
+                        .focused($isFocused)
+                        .onSubmit {
+                            saveChanges()
+                        }
+                        .onAppear {
+                            isFocused = true
+                        }
+                        .onChange(of: isFocused) { _, newValue in
+                            if !newValue && isEditing {
+                                saveChanges()
+                            }
+                        }
+                } else {
+                    Text(inspiration.title)
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(inspiration.isCompleted ? .secondary.opacity(0.6) : .primary)
+                        .strikethrough(inspiration.isCompleted)
+                        .onTapGesture(count: 2) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                isEditing = true
+                            }
+                        }
+                }
             }
             
             Spacer()
             
             // 右侧元数据
             HStack(spacing: 12) {
-                if !inspiration.category.isEmpty {
-                    Text(inspiration.category)
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary.opacity(0.6))
+                if !inspiration.notes.isEmpty {
+                    Image(systemName: "text.alignleft")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary.opacity(0.5))
                 }
                 
-                Image(systemName: "text.justify.left")
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary.opacity(0.4))
-                
-                Text(formattedDate)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(dateColor)
+                if !inspiration.category.isEmpty && inspiration.category != "未分类" {
+                    Text(inspiration.category)
+                        .font(.system(size: 10, weight: .medium))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.primary.opacity(0.05))
+                        .cornerRadius(4)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .opacity(isEditing ? 0 : 1)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isHovered = hovering
             }
         }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 4)
+        .scaleEffect(isHovered && !isEditing ? 1.01 : 1.0)
+        .onTapGesture {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                selectThisInspiration()
+            }
+        }
+        .onChange(of: selectedInspiration) { _, newValue in
+            // 如果选中的不是当前行，且当前行正在编辑，则保存并退出编辑
+            if isEditing && newValue?.id != inspiration.id {
+                saveChanges()
+            }
+        }
+    }
+    
+    private func saveChanges() {
+        isEditing = false
+        isFocused = false
+        try? inspiration.modelContext?.save()
+    }
+    
+    private func selectThisInspiration() {
+        selectedInspiration = inspiration
+        // 如果是在搜索状态下点击，自动跳转到对应分类
+        if !searchText.isEmpty {
+            if inspiration.isCompleted {
+                selection = .completed
+            } else if !inspiration.category.isEmpty {
+                selection = .category(inspiration.category)
+            } else {
+                selection = .all
+            }
+        }
     }
     
     private var formattedDate: String {

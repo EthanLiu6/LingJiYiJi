@@ -30,6 +30,7 @@ struct LingJiYiJiApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .accentColor(.primary) // 强制全应用使用中性色，消除紫色
         }
         .modelContainer(container)
     }
