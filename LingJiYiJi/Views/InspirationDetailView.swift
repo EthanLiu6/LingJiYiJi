@@ -13,7 +13,6 @@ struct InspirationDetailView: View {
                 TextField("标题", text: $inspiration.title)
                     .font(.title2.bold())
                     .textFieldStyle(.plain)
-                    .fixedSize(horizontal: false, vertical: true)
                 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("备注")
@@ -33,7 +32,7 @@ struct InspirationDetailView: View {
                             .font(.system(size: 14))
                             .scrollContentBackground(.hidden)
                     }
-                    .frame(minHeight: 100)
+                    .frame(minHeight: 200)
                     .padding(6)
                     .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
                     .cornerRadius(8)
@@ -52,8 +51,7 @@ struct InspirationDetailView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .labelsHidden()
-                    .fixedSize()
+                    .frame(maxWidth: 200)
                     
                     Button {
                         Task {
@@ -117,7 +115,7 @@ struct InspirationDetailView: View {
                         Label("开启提醒", systemImage: "bell.badge.fill")
                             .foregroundColor(inspiration.reminderDate != nil ? Color(red: 1.0, green: 0.4, blue: 0.2) : .secondary)
                     }
-                    .toggleStyle(CustomToggleStyle())
+                    .toggleStyle(.switch)
                     
                     if let reminderDate = inspiration.reminderDate {
                         VStack(alignment: .leading, spacing: 10) {
@@ -125,9 +123,9 @@ struct InspirationDetailView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
                                     presetButton("1小时后", icon: "clock", color: .blue) { setReminderRelative(hours: 1) }
-                                    presetButton("今晚 20:00", icon: "moon.stars", color: .indigo) { setReminderToday(hour: 20) }
+                                    presetButton("今晚 20:00", icon: "moon.stars", color: .purple) { setReminderToday(hour: 20) }
                                     presetButton("明天 09:00", icon: "sunrise", color: .orange) { setReminderTomorrow(hour: 9) }
-                                    presetButton("明天 22:00", icon: "moon", color: .purple) { setReminderTomorrow(hour: 22) }
+                                    presetButton("明天 22:00", icon: "moon", color: .indigo) { setReminderTomorrow(hour: 22) }
                                 }
                             }
                             
@@ -139,11 +137,7 @@ struct InspirationDetailView: View {
                                     NotificationManager.shared.scheduleNotification(for: inspiration)
                                 }
                             ))
-                            .datePickerStyle(.stepperField)
-                            .fixedSize()
-                            .padding(4)
-                            .background(Color(nsColor: .controlBackgroundColor))
-                            .border(Color.primary.opacity(0.1), width: 1)
+                            .datePickerStyle(.field)
                         }
                         .padding(.top, 4)
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -153,16 +147,20 @@ struct InspirationDetailView: View {
             
             Section("状态") {
                 Toggle("已完成", isOn: $inspiration.isCompleted)
-                    .toggleStyle(CustomToggleStyle())
                     .onChange(of: inspiration.isCompleted) { oldValue, newValue in
                         if newValue {
-                            // 开启已完成：关闭并清除提醒
+                            // 勾选已完成后，自动关闭提醒
+                            if let current = inspiration.reminderDate {
+                                cachedReminderDate = current
+                            }
                             inspiration.reminderDate = nil
                             NotificationManager.shared.cancelNotification(for: inspiration)
+                        } else {
+                            // 重新设为未完成时，如果不希望自动恢复提醒，这里可以保持 nil
+                            // 或者根据需要逻辑恢复
                         }
                     }
                 Toggle("置顶", isOn: $inspiration.isPinned)
-                    .toggleStyle(CustomToggleStyle())
                 
                 LabeledContent("创建时间") {
                     Text(inspiration.createdAt, style: .date)
@@ -197,8 +195,8 @@ struct InspirationDetailView: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(color.opacity(0.1))
             .foregroundColor(color)
+            .background(color.opacity(0.12))
             .cornerRadius(6)
         }
         .buttonStyle(.plain)
@@ -236,35 +234,6 @@ struct InspirationDetailView: View {
             inspiration.reminderDate = date
             cachedReminderDate = date
             NotificationManager.shared.scheduleNotification(for: inspiration)
-        }
-    }
-}
-
-// MARK: - 自定义样式
-
-struct CustomToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack {
-            configuration.label
-            Spacer()
-            ZStack {
-                // 背景胶囊形
-                Capsule()
-                    .fill(configuration.isOn ? Color.accentColor : Color.primary.opacity(0.15))
-                    .frame(width: 38, height: 20)
-                
-                // 滑块圆形
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 16, height: 16)
-                    .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
-                    .offset(x: configuration.isOn ? 9 : -9)
-            }
-            .onTapGesture {
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
-                    configuration.isOn.toggle()
-                }
-            }
         }
     }
 }

@@ -285,12 +285,10 @@ struct InspirationListView: View {
         }
         
         Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                inspiration.isCompleted.toggle()
-                if inspiration.isCompleted {
-                    inspiration.reminderDate = nil
-                    NotificationManager.shared.cancelNotification(for: inspiration)
-                }
+            inspiration.isCompleted.toggle()
+            if inspiration.isCompleted {
+                inspiration.reminderDate = nil
+                NotificationManager.shared.cancelNotification(for: inspiration)
             }
         } label: {
             Label(inspiration.isCompleted ? "设为未完成" : "完成", systemImage: inspiration.isCompleted ? "circle" : "checkmark.circle")
@@ -401,13 +399,14 @@ struct InspirationRowView: View {
                  withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                      inspiration.isCompleted.toggle()
                      if inspiration.isCompleted {
-                         // 勾选已完成：关闭提醒并播放音效
+                         // 勾选已完成后，自动关闭提醒
                          inspiration.reminderDate = nil
                          NotificationManager.shared.cancelNotification(for: inspiration)
+                         // 播放系统勾选音效
                          NSSound(named: "Glass")?.play()
                      }
                  }
-             }
+            }
             
             // 标题
             HStack(spacing: 6) {
@@ -422,7 +421,6 @@ struct InspirationRowView: View {
                     TextField("灵感标题", text: $inspiration.title)
                         .textFieldStyle(.plain)
                         .font(.system(size: 14, weight: .regular))
-                        .fixedSize(horizontal: false, vertical: true)
                         .foregroundColor(inspiration.isCompleted ? .secondary.opacity(0.6) : .primary)
                         .strikethrough(inspiration.isCompleted)
                         .focused($isFocused)
