@@ -1,0 +1,546 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		1E99642A2F15CD7A00F5D5BA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1E9964102F15CD7800F5D5BA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1E9964172F15CD7800F5D5BA;
+			remoteInfo = LingJiYiJi;
+		};
+		1E9964342F15CD7A00F5D5BA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1E9964102F15CD7800F5D5BA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1E9964172F15CD7800F5D5BA;
+			remoteInfo = LingJiYiJi;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		1E9964182F15CD7800F5D5BA /* LingJiYiJi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LingJiYiJi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1E9964292F15CD7A00F5D5BA /* LingJiYiJiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LingJiYiJiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1E9964332F15CD7A00F5D5BA /* LingJiYiJiUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LingJiYiJiUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		1E99641A2F15CD7800F5D5BA /* LingJiYiJi */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LingJiYiJi;
+			sourceTree = "<group>";
+		};
+		1E99642C2F15CD7A00F5D5BA /* LingJiYiJiTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LingJiYiJiTests;
+			sourceTree = "<group>";
+		};
+		1E9964362F15CD7A00F5D5BA /* LingJiYiJiUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LingJiYiJiUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1E9964152F15CD7800F5D5BA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1E9964262F15CD7A00F5D5BA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1E9964302F15CD7A00F5D5BA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1E99640F2F15CD7800F5D5BA = {
+			isa = PBXGroup;
+			children = (
+				1E99641A2F15CD7800F5D5BA /* LingJiYiJi */,
+				1E99642C2F15CD7A00F5D5BA /* LingJiYiJiTests */,
+				1E9964362F15CD7A00F5D5BA /* LingJiYiJiUITests */,
+				1E9964192F15CD7800F5D5BA /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1E9964192F15CD7800F5D5BA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1E9964182F15CD7800F5D5BA /* LingJiYiJi.app */,
+				1E9964292F15CD7A00F5D5BA /* LingJiYiJiTests.xctest */,
+				1E9964332F15CD7A00F5D5BA /* LingJiYiJiUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1E9964172F15CD7800F5D5BA /* LingJiYiJi */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1E99643D2F15CD7A00F5D5BA /* Build configuration list for PBXNativeTarget "LingJiYiJi" */;
+			buildPhases = (
+				1E9964142F15CD7800F5D5BA /* Sources */,
+				1E9964152F15CD7800F5D5BA /* Frameworks */,
+				1E9964162F15CD7800F5D5BA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				1E99641A2F15CD7800F5D5BA /* LingJiYiJi */,
+			);
+			name = LingJiYiJi;
+			packageProductDependencies = (
+			);
+			productName = LingJiYiJi;
+			productReference = 1E9964182F15CD7800F5D5BA /* LingJiYiJi.app */;
+			productType = "com.apple.product-type.application";
+		};
+		1E9964282F15CD7A00F5D5BA /* LingJiYiJiTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1E9964402F15CD7A00F5D5BA /* Build configuration list for PBXNativeTarget "LingJiYiJiTests" */;
+			buildPhases = (
+				1E9964252F15CD7A00F5D5BA /* Sources */,
+				1E9964262F15CD7A00F5D5BA /* Frameworks */,
+				1E9964272F15CD7A00F5D5BA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1E99642B2F15CD7A00F5D5BA /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				1E99642C2F15CD7A00F5D5BA /* LingJiYiJiTests */,
+			);
+			name = LingJiYiJiTests;
+			packageProductDependencies = (
+			);
+			productName = LingJiYiJiTests;
+			productReference = 1E9964292F15CD7A00F5D5BA /* LingJiYiJiTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		1E9964322F15CD7A00F5D5BA /* LingJiYiJiUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1E9964432F15CD7A00F5D5BA /* Build configuration list for PBXNativeTarget "LingJiYiJiUITests" */;
+			buildPhases = (
+				1E99642F2F15CD7A00F5D5BA /* Sources */,
+				1E9964302F15CD7A00F5D5BA /* Frameworks */,
+				1E9964312F15CD7A00F5D5BA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1E9964352F15CD7A00F5D5BA /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				1E9964362F15CD7A00F5D5BA /* LingJiYiJiUITests */,
+			);
+			name = LingJiYiJiUITests;
+			packageProductDependencies = (
+			);
+			productName = LingJiYiJiUITests;
+			productReference = 1E9964332F15CD7A00F5D5BA /* LingJiYiJiUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1E9964102F15CD7800F5D5BA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					1E9964172F15CD7800F5D5BA = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					1E9964282F15CD7A00F5D5BA = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 1E9964172F15CD7800F5D5BA;
+					};
+					1E9964322F15CD7A00F5D5BA = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 1E9964172F15CD7800F5D5BA;
+					};
+				};
+			};
+			buildConfigurationList = 1E9964132F15CD7800F5D5BA /* Build configuration list for PBXProject "LingJiYiJi" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1E99640F2F15CD7800F5D5BA;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 1E9964192F15CD7800F5D5BA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1E9964172F15CD7800F5D5BA /* LingJiYiJi */,
+				1E9964282F15CD7A00F5D5BA /* LingJiYiJiTests */,
+				1E9964322F15CD7A00F5D5BA /* LingJiYiJiUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1E9964162F15CD7800F5D5BA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1E9964272F15CD7A00F5D5BA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1E9964312F15CD7A00F5D5BA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1E9964142F15CD7800F5D5BA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1E9964252F15CD7A00F5D5BA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1E99642F2F15CD7A00F5D5BA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		1E99642B2F15CD7A00F5D5BA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1E9964172F15CD7800F5D5BA /* LingJiYiJi */;
+			targetProxy = 1E99642A2F15CD7A00F5D5BA /* PBXContainerItemProxy */;
+		};
+		1E9964352F15CD7A00F5D5BA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1E9964172F15CD7800F5D5BA /* LingJiYiJi */;
+			targetProxy = 1E9964342F15CD7A00F5D5BA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1E99643B2F15CD7A00F5D5BA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.1;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		1E99643C2F15CD7A00F5D5BA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.1;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		1E99643E2F15CD7A00F5D5BA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LingJiYiJi/LingJiYiJi.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"LingJiYiJi/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ethan.LingJiYiJi;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		1E99643F2F15CD7A00F5D5BA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LingJiYiJi/LingJiYiJi.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"LingJiYiJi/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ethan.LingJiYiJi;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		1E9964412F15CD7A00F5D5BA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ethan.LingJiYiJiTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LingJiYiJi.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LingJiYiJi";
+			};
+			name = Debug;
+		};
+		1E9964422F15CD7A00F5D5BA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ethan.LingJiYiJiTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LingJiYiJi.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LingJiYiJi";
+			};
+			name = Release;
+		};
+		1E9964442F15CD7A00F5D5BA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ethan.LingJiYiJiUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = LingJiYiJi;
+			};
+			name = Debug;
+		};
+		1E9964452F15CD7A00F5D5BA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ethan.LingJiYiJiUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = LingJiYiJi;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1E9964132F15CD7800F5D5BA /* Build configuration list for PBXProject "LingJiYiJi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1E99643B2F15CD7A00F5D5BA /* Debug */,
+				1E99643C2F15CD7A00F5D5BA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1E99643D2F15CD7A00F5D5BA /* Build configuration list for PBXNativeTarget "LingJiYiJi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1E99643E2F15CD7A00F5D5BA /* Debug */,
+				1E99643F2F15CD7A00F5D5BA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1E9964402F15CD7A00F5D5BA /* Build configuration list for PBXNativeTarget "LingJiYiJiTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1E9964412F15CD7A00F5D5BA /* Debug */,
+				1E9964422F15CD7A00F5D5BA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1E9964432F15CD7A00F5D5BA /* Build configuration list for PBXNativeTarget "LingJiYiJiUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1E9964442F15CD7A00F5D5BA /* Debug */,
+				1E9964452F15CD7A00F5D5BA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 1E9964102F15CD7800F5D5BA /* Project object */;
+}
