@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import AppKit
+import UniformTypeIdentifiers
 
 struct InspirationListView: View {
     @Environment(\.modelContext) private var modelContext
@@ -15,15 +16,16 @@ struct InspirationListView: View {
     @State private var isAddHovered: Bool = false
     @State private var showingDeleteConfirmation = false
     @State private var inspirationToDelete: Inspiration?
+    @State private var draggedItem: Inspiration?
     
-    var pendingInspirations: [Inspiration] {
-        filteredInspirations.filter { !$0.isCompleted }
-            .sorted { 
-                if $0.isPinned != $1.isPinned {
-                    return $0.isPinned
-                }
-                return $0.orderIndex < $1.orderIndex 
-            }
+    var pinnedInspirations: [Inspiration] {
+        filteredInspirations.filter { !$0.isCompleted && $0.isPinned }
+            .sorted { $0.orderIndex < $1.orderIndex }
+    }
+    
+    var unpinnedInspirations: [Inspiration] {
+        filteredInspirations.filter { !$0.isCompleted && !$0.isPinned }
+            .sorted { $0.orderIndex < $1.orderIndex }
     }
     
     var completedInspirations: [Inspiration] {
@@ -163,56 +165,114 @@ struct InspirationListView: View {
                 .background(Color(nsColor: .windowBackgroundColor))
             } else {
                 List {
+                    if !pinnedInspirations.isEmpty {
                         Section {
-                            ForEach(pendingInspirations) { inspiration in
-                        InspirationRowView(inspiration: inspiration, selectedInspiration: $selectedInspiration, searchText: $searchText, selection: $selection)
-                            .contentShape(Rectangle())
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                            .listRowBackground(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.1) : Color.clear)
-                                    .overlay(
+                            ForEach(pinnedInspirations) { inspiration in
+                                InspirationRowView(inspiration: inspiration, selectedInspiration: $selectedInspiration, searchText: $searchText, selection: $selection)
+                                    .contentShape(Rectangle())
+                                    .listRowSeparator(.hidden)
+                                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                    .listRowBackground(
                                         RoundedRectangle(cornerRadius: 10)
-                                            .stroke(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.2) : Color.clear, lineWidth: 1)
+                                            .fill(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.1) : Color.clear)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 10)
+                                                    .stroke(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.2) : Color.clear, lineWidth: 1)
+                                            )
+                                            .padding(.horizontal, 8)
                                     )
-                                    .padding(.horizontal, 8)
-                            )
-                                    .onDrag {
-                                        NSItemProvider(object: inspiration.id.uuidString as NSString)
-                                    }
                                     .contextMenu {
                                         rowContextMenu(inspiration)
                                     }
+                                    .onDrag {
+                                        self.draggedItem = inspiration
+                                        return NSItemProvider(object: inspiration.id.uuidString as NSString)
+                                    }
+                                    .onDrop(of: [.text], delegate: InspirationDropDelegate(
+                                        item: inspiration,
+                                        inspirations: pinnedInspirations,
+                                        draggedItem: $draggedItem,
+                                        moveAction: { from, to in
+                                            moveInspiration(from: from, to: to, in: pinnedInspirations)
+                                        }
+                                    ))
                             }
-                            .onMove(perform: moveInspirations)
+                        } header: {
+                            HStack {
+                                Image(systemName: "pin.fill")
+                                    .font(.system(size: 10))
+                                Text("已置顶")
+                            }
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .padding(.top, 8)
                         }
-                        
-                        if !completedInspirations.isEmpty {
-                            Section(isExpanded: $isCompletedExpanded) {
-                                ForEach(completedInspirations) {
-                                    inspiration in
-                                    InspirationRowView(inspiration: inspiration, selectedInspiration: $selectedInspiration, searchText: $searchText, selection: $selection)
-                                        .contentShape(Rectangle())
-                                        .listRowSeparator(.hidden)
-                                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                                        .listRowBackground(
+                    }
+
+                    Section {
+                        ForEach(unpinnedInspirations) { inspiration in
+                            InspirationRowView(inspiration: inspiration, selectedInspiration: $selectedInspiration, searchText: $searchText, selection: $selection)
+                                .contentShape(Rectangle())
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                .listRowBackground(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.1) : Color.clear)
+                                        .overlay(
                                             RoundedRectangle(cornerRadius: 10)
-                                                .fill(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.1) : Color.clear)
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 10)
-                                                        .stroke(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.2) : Color.clear, lineWidth: 1)
-                                                )
-                                                .padding(.horizontal, 8)
+                                                .stroke(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.2) : Color.clear, lineWidth: 1)
                                         )
-                                        .onDrag {
-                                            NSItemProvider(object: inspiration.id.uuidString as NSString)
-                                        }
-                                        .contextMenu {
-                                            rowContextMenu(inspiration)
-                                        }
+                                        .padding(.horizontal, 8)
+                                )
+                                .contextMenu {
+                                    rowContextMenu(inspiration)
                                 }
-                            } header: {
+                                .onDrag {
+                                    self.draggedItem = inspiration
+                                    return NSItemProvider(object: inspiration.id.uuidString as NSString)
+                                }
+                                .onDrop(of: [.text], delegate: InspirationDropDelegate(
+                                    item: inspiration,
+                                    inspirations: unpinnedInspirations,
+                                    draggedItem: $draggedItem,
+                                    moveAction: { from, to in
+                                        moveInspiration(from: from, to: to, in: unpinnedInspirations)
+                                    }
+                                ))
+                        }
+                    } header: {
+                        if !pinnedInspirations.isEmpty {
+                            Text("未置顶")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.secondary)
+                                .padding(.top, 8)
+                        }
+                    }
+                    
+                    if !completedInspirations.isEmpty {
+                        Section(isExpanded: $isCompletedExpanded) {
+                            ForEach(completedInspirations) { inspiration in
+                                InspirationRowView(inspiration: inspiration, selectedInspiration: $selectedInspiration, searchText: $searchText, selection: $selection)
+                                    .contentShape(Rectangle())
+                                    .listRowSeparator(.hidden)
+                                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                    .listRowBackground(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .fill(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.1) : Color.clear)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 10)
+                                                    .stroke(selectedInspiration?.id == inspiration.id ? Color(red: 0.2, green: 0.5, blue: 0.9).opacity(0.2) : Color.clear, lineWidth: 1)
+                                            )
+                                            .padding(.horizontal, 8)
+                                    )
+                                    .contextMenu {
+                                        rowContextMenu(inspiration)
+                                    }
+                                    .onDrag {
+                                        NSItemProvider(object: inspiration.id.uuidString as NSString)
+                                    }
+                            }
+                        } header: {
                                 HStack(spacing: 4) {
                                     Text("已完成")
                                     Text("\(completedInspirations.count)")
@@ -285,13 +345,7 @@ struct InspirationListView: View {
         }
         
         Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                inspiration.isCompleted.toggle()
-                if inspiration.isCompleted {
-                    inspiration.reminderDate = nil
-                    NotificationManager.shared.cancelNotification(for: inspiration)
-                }
-            }
+            inspiration.isCompleted.toggle()
         } label: {
             Label(inspiration.isCompleted ? "设为未完成" : "完成", systemImage: inspiration.isCompleted ? "circle" : "checkmark.circle")
         }
@@ -322,7 +376,7 @@ struct InspirationListView: View {
         guard !trimmed.isEmpty else { return }
         
         // 计算新的 orderIndex (放在最前面)
-        let minOrder = pendingInspirations.map { $0.orderIndex }.min() ?? 0
+        let minOrder = unpinnedInspirations.map { $0.orderIndex }.min() ?? 0
         let newInspiration = Inspiration(title: trimmed, orderIndex: minOrder - 1)
         
         modelContext.insert(newInspiration)
@@ -339,7 +393,7 @@ struct InspirationListView: View {
     }
     
     private func addInspiration() {
-        let minOrder = pendingInspirations.map { $0.orderIndex }.min() ?? 0
+        let minOrder = unpinnedInspirations.map { $0.orderIndex }.min() ?? 0
         let newInspiration = Inspiration(title: "新灵感", orderIndex: minOrder - 1)
         modelContext.insert(newInspiration)
         selectedInspiration = newInspiration
@@ -358,14 +412,49 @@ struct InspirationListView: View {
         inspirationToDelete = nil
     }
     
-    private func moveInspirations(from source: IndexSet, to destination: Int) {
-        var revisedItems = pendingInspirations
-        revisedItems.move(fromOffsets: source, toOffset: destination)
+    private func moveInspiration(from source: Inspiration, to destination: Inspiration, in list: [Inspiration]) {
+        var revisedItems = list
+        guard let fromIndex = revisedItems.firstIndex(of: source),
+              let toIndex = revisedItems.firstIndex(of: destination) else { return }
         
-        // 更新所有受影响项的 orderIndex
-        for reverseIndex in 0..<revisedItems.count {
-            revisedItems[reverseIndex].orderIndex = reverseIndex
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            revisedItems.move(fromOffsets: IndexSet(integer: fromIndex), toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex)
+            
+            // 更新所有项的 orderIndex
+            for index in 0..<revisedItems.count {
+                revisedItems[index].orderIndex = index
+            }
+            
+            try? modelContext.save()
         }
+    }
+}
+
+struct InspirationDropDelegate: DropDelegate {
+    let item: Inspiration
+    let inspirations: [Inspiration]
+    @Binding var draggedItem: Inspiration?
+    let moveAction: (Inspiration, Inspiration) -> Void
+
+    func performDrop(info: DropInfo) -> Bool {
+        self.draggedItem = nil
+        return true
+    }
+
+    func dropEntered(info: DropInfo) {
+        guard let draggedItem = draggedItem,
+              draggedItem != item,
+              let from = inspirations.firstIndex(of: draggedItem),
+              let to = inspirations.firstIndex(of: item)
+        else { return }
+
+        if inspirations[to].id != draggedItem.id {
+            moveAction(draggedItem, item)
+        }
+    }
+    
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        return DropProposal(operation: .move)
     }
 }
 
@@ -401,9 +490,7 @@ struct InspirationRowView: View {
                  withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                      inspiration.isCompleted.toggle()
                      if inspiration.isCompleted {
-                         // 勾选已完成：关闭提醒并播放音效
-                         inspiration.reminderDate = nil
-                         NotificationManager.shared.cancelNotification(for: inspiration)
+                         // 播放系统勾选音效
                          NSSound(named: "Glass")?.play()
                      }
                  }

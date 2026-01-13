@@ -29,19 +29,20 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView(selection: $selection, selectedInspiration: $selectedInspiration)
-                .frame(minWidth: 200)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 300)
         } content: {
             if isListSelected {
                 InspirationListView(selectedInspiration: $selectedInspiration, selection: $selection)
-                    .navigationSplitViewColumnWidth(min: 300, ideal: 400)
+                    .navigationSplitViewColumnWidth(min: 300, ideal: 360)
             } else {
                 Text("") // 占位，当选择统计或设置时，中间栏留空或隐藏
                     .navigationSplitViewColumnWidth(0)
             }
         } detail: {
             detailView
+                .navigationSplitViewColumnWidth(min: 400, ideal: 450)
         }
-        .frame(minWidth: 900, maxWidth: .infinity, minHeight: 480, maxHeight: .infinity)
+        .frame(minWidth: 1000, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selection)
         .onAppear {
             setupDefaultCategories()

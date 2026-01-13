@@ -210,18 +210,7 @@ struct SidebarView: View {
                 HStack {
                     Button("取消") { editingCategory = nil }
                     Button("保存") {
-                        let oldName = category.name
-                        let newName = editName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !newName.isEmpty && oldName != newName {
-                            // 更新所有属于该分类的灵感
-                            for inspiration in inspirations {
-                                if inspiration.category == oldName {
-                                    inspiration.category = newName
-                                }
-                            }
-                            category.name = newName
-                            try? modelContext.save()
-                        }
+                        renameCategory(category, to: editName)
                         editingCategory = nil
                     }
                     .buttonStyle(.borderedProminent)
@@ -236,6 +225,49 @@ struct SidebarView: View {
         name == "未分类"
     }
     
+    private func deleteCategory(_ category: Category) {
+        let categoryName = category.name
+        
+        // 1. 将该分类下的所有灵感归入“未分类”
+        for inspiration in inspirations {
+            if inspiration.category == categoryName {
+                inspiration.category = "未分类"
+            }
+        }
+        
+        // 2. 如果当前选中了该分类，切换到“全部灵感”
+        if case .category(let selectedName) = selection, selectedName == categoryName {
+            selection = .all
+        }
+        
+        // 3. 删除分类
+        modelContext.delete(category)
+        try? modelContext.save()
+    }
+    
+    private func renameCategory(_ category: Category, to newName: String) {
+        let oldName = category.name
+        let trimmedNewName = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedNewName.isEmpty && trimmedNewName != oldName else { return }
+        
+        // 1. 更新所有相关灵感的分类名称
+        for inspiration in inspirations {
+            if inspiration.category == oldName {
+                inspiration.category = trimmedNewName
+            }
+        }
+        
+        // 2. 如果当前选中了该分类，更新选中状态
+        if case .category(let selectedName) = selection, selectedName == oldName {
+            selection = .category(trimmedNewName)
+        }
+        
+        // 3. 更新分类名称
+        category.name = trimmedNewName
+        try? modelContext.save()
+    }
+    
     private func addCategory() {
         let trimmed = newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
@@ -248,18 +280,6 @@ struct SidebarView: View {
             newCategoryName = ""
             showingAddCategory = false
         }
-    }
-    
-    private func deleteCategory(_ category: Category) {
-        let nameToDelete = category.name
-        // 将属于该分类的所有灵感移至“未分类”
-        for inspiration in inspirations {
-            if inspiration.category == nameToDelete {
-                inspiration.category = "未分类"
-            }
-        }
-        modelContext.delete(category)
-        try? modelContext.save()
     }
     
     private func moveCategories(from source: IndexSet, to destination: Int) {
