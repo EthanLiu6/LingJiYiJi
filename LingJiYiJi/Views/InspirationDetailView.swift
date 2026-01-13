@@ -23,8 +23,8 @@ struct InspirationDetailView: View {
                         if inspiration.notes.isEmpty {
                             Text("记录更详细的想法...")
                                 .foregroundColor(.secondary)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 8)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
                                 .allowsHitTesting(false)
                         }
                         
