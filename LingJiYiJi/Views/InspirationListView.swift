@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import AppKit
+import UniformTypeIdentifiers
 
 /// 灵感列表视图：展示选定分类下的所有灵感，支持搜索、排序和快捷添加
 struct InspirationListView: View {
@@ -189,6 +190,7 @@ struct InspirationListView: View {
                                     }
                             }
                             .onMove(perform: moveInspirations)
+                            .onInsert(of: [.text], perform: handleInsert)
                         }
                         
                         // 已完成部分（带折叠功能）
@@ -362,14 +364,52 @@ struct InspirationListView: View {
         inspirationToDelete = nil
     }
     
+    /// 处理通过拖拽插入到列表特定位置的逻辑 (macOS 专用)
+    private func handleInsert(at index: Int, itemProviders: [NSItemProvider]) {
+        for provider in itemProviders {
+            provider.loadObject(ofClass: NSString.self) { (uuidString, error) in
+                if let uuidString = uuidString as? String, let uuid = UUID(uuidString: uuidString) {
+                    DispatchQueue.main.async {
+                        // 在当前显示的待办列表中寻找被拖拽项的原始索引
+                        if let sourceIndex = pendingInspirations.firstIndex(where: { $0.id == uuid }) {
+                            moveInspirations(from: IndexSet(integer: sourceIndex), to: index)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     /// 手动拖拽排序逻辑
     private func moveInspirations(from source: IndexSet, to destination: Int) {
         var revisedItems = pendingInspirations
         revisedItems.move(fromOffsets: source, toOffset: destination)
         
+        // 1. 处理置顶状态的自动转换
+        // 如果将一个非置顶项拖到了置顶项之间，或者反之，我们根据其新位置的邻居来更新它的 isPinned 状态
+        if let sourceIndex = source.first {
+            let movedItem = pendingInspirations[sourceIndex]
+            
+            // 确定目标位置的参考索引
+            // destination 是插入点，所以参考点通常是 destination 或 destination - 1
+            let refIndex = destination > 0 ? (destination < revisedItems.count ? destination : revisedItems.count - 1) : 0
+            if refIndex < revisedItems.count {
+                let targetRef = revisedItems[refIndex]
+                if movedItem.isPinned != targetRef.isPinned {
+                    withAnimation {
+                        movedItem.isPinned = targetRef.isPinned
+                    }
+                }
+            }
+        }
+        
+        // 2. 重新分配所有项的 orderIndex 以保持持久化顺序
         for reverseIndex in 0..<revisedItems.count {
             revisedItems[reverseIndex].orderIndex = reverseIndex
         }
+        
+        // 3. 必须手动保存以确保 SwiftData 及时更新数据库
+        try? modelContext.save()
     }
 }
 
