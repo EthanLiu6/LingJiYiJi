@@ -41,7 +41,7 @@ struct ContentView: View {
         } detail: {
             detailView
         }
-        .frame(minWidth: 900, maxWidth: .infinity, minHeight: 320, maxHeight: .infinity)
+        .frame(minWidth: 900, maxWidth: .infinity, minHeight: 480, maxHeight: .infinity)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selection)
         .onAppear {
             setupDefaultCategories()

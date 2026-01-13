@@ -7,9 +7,11 @@
 
 import SwiftUI
 import SwiftData
+import AppKit
 
 @main
 struct LingJiYiJiApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     let container: ModelContainer
     
     init() {
@@ -33,5 +35,11 @@ struct LingJiYiJiApp: App {
                 .accentColor(.primary) // 强制全应用使用中性色，消除紫色
         }
         .modelContainer(container)
+    }
+}
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return false
     }
 }

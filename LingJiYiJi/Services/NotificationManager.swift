@@ -38,7 +38,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         let content = UNMutableNotificationContent()
         content.title = "灵感提醒 💡"
         content.body = inspiration.title
-        content.sound = UNNotificationSound.defaultCritical // 使用更显著的声音
+        content.sound = .default // 改回标准声音，确保兼容性
         content.userInfo = ["inspirationID": inspiration.id.uuidString]
         
         let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: reminderDate)
