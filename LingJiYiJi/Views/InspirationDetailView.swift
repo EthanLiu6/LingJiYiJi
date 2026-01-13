@@ -13,6 +13,7 @@ struct InspirationDetailView: View {
                 TextField("标题", text: $inspiration.title)
                     .font(.title2.bold())
                     .textFieldStyle(.plain)
+                    .fixedSize(horizontal: false, vertical: true)
                 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("备注")
@@ -32,7 +33,7 @@ struct InspirationDetailView: View {
                             .font(.system(size: 14))
                             .scrollContentBackground(.hidden)
                     }
-                    .frame(minHeight: 200)
+                    .frame(minHeight: 100)
                     .padding(6)
                     .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
                     .cornerRadius(8)
@@ -51,7 +52,8 @@ struct InspirationDetailView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .frame(maxWidth: 200)
+                    .labelsHidden()
+                    .fixedSize()
                     
                     Button {
                         Task {
@@ -138,7 +140,7 @@ struct InspirationDetailView: View {
                                 }
                             ))
                             .datePickerStyle(.stepperField)
-                            .labelsHidden()
+                            .fixedSize()
                             .padding(4)
                             .background(Color(nsColor: .controlBackgroundColor))
                             .border(Color.primary.opacity(0.1), width: 1)

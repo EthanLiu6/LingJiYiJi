@@ -422,6 +422,7 @@ struct InspirationRowView: View {
                     TextField("灵感标题", text: $inspiration.title)
                         .textFieldStyle(.plain)
                         .font(.system(size: 14, weight: .regular))
+                        .fixedSize(horizontal: false, vertical: true)
                         .foregroundColor(inspiration.isCompleted ? .secondary.opacity(0.6) : .primary)
                         .strikethrough(inspiration.isCompleted)
                         .focused($isFocused)
