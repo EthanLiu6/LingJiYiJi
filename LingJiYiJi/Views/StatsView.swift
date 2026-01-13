@@ -1,127 +1,186 @@
 import SwiftUI
 import SwiftData
+import Charts
 
-/// 统计视图：展示灵感记录的汇总数据、分类占比以及最近完成情况
 struct StatsView: View {
     @Query private var inspirations: [Inspiration]
     @Query private var categories: [Category]
+    @State private var animateChart = false
+    
+    var categoryCounts: [(String, Int)] {
+        let validCategoryNames = Set(categories.map { $0.name })
+        
+        // 统计所有灵感，如果分类已删除，则归类为"未分类"
+        var counts: [String: Int] = [:]
+        
+        for inspiration in inspirations {
+            let catName = validCategoryNames.contains(inspiration.category) ? inspiration.category : "未分类"
+            counts[catName, default: 0] += 1
+        }
+        
+        return counts.map { ($0.key, $0.value) }.sorted { $0.1 > $1.1 }
+    }
+    
+    var completionStats: [(String, Int)] {
+        let completed = inspirations.filter { $0.isCompleted }.count
+        let total = inspirations.count
+        return [
+            ("已完成", completed),
+            ("进行中", total - completed)
+        ]
+    }
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 32) {
+            VStack(spacing: 24) {
                 Text("数据统计")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.largeTitle)
+                    .bold()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 
-                // 1. 顶部总览卡片
                 HStack(spacing: 20) {
-                    statCard(title: "总灵感", count: inspirations.count, color: .blue, icon: "lightbulb.fill")
-                    statCard(title: "已完成", count: inspirations.filter { $0.isCompleted }.count, color: .green, icon: "checkmark.circle.fill")
-                    statCard(title: "待处理", count: inspirations.filter { !$0.isCompleted }.count, color: .orange, icon: "clock.fill")
+                    StatCard(title: "总灵感", value: "\(inspirations.count)", color: .blue, delay: 0)
+                    StatCard(title: "已完成", value: "\(inspirations.filter { $0.isCompleted }.count)", color: .green, delay: 0.1)
+                    StatCard(title: "置顶中", value: "\(inspirations.filter { $0.isPinned }.count)", color: .orange, delay: 0.2)
                 }
                 
-                // 2. 分类占比分析
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("分类占比")
-                        .font(.headline)
-                    
-                    VStack(spacing: 12) {
-                        ForEach(categories) { category in
-                            let count = inspirations.filter { $0.category == category.name }.count
-                            let percentage = inspirations.isEmpty ? 0 : Double(count) / Double(inspirations.count)
-                            
-                            categoryRow(name: category.name, count: count, percentage: percentage)
-                        }
+                HStack(alignment: .top, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("完成情况 (进行中 vs 已完成)")
+                            .font(.headline)
                         
-                        // 处理未在分类列表中的灵感（如果有）
-                        let otherCount = inspirations.filter { insp in !categories.contains(where: { $0.name == insp.category }) }.count
-                        if otherCount > 0 {
-                            let percentage = Double(otherCount) / Double(inspirations.count)
-                            categoryRow(name: "其他", count: otherCount, percentage: percentage)
-                        }
-                    }
-                    .padding()
-                    .background(Color.primary.opacity(0.03))
-                    .cornerRadius(12)
-                }
-                
-                // 3. 最近 7 天完成情况（占位展示，可后续扩展）
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("完成趋势")
-                        .font(.headline)
-                    
-                    HStack(alignment: .bottom, spacing: 12) {
-                        ForEach(0..<7) { day in
-                            VStack {
-                                Spacer()
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.accentColor.opacity(0.6))
-                                    .frame(width: 30, height: CGFloat.random(in: 20...100))
-                                Text("\(7-day)d")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.secondary)
+                        if inspirations.isEmpty {
+                            Text("暂无数据")
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, minHeight: 250)
+                        } else {
+                            Chart {
+                                ForEach(completionStats, id: \.0) { item in
+                                    SectorMark(
+                                        angle: .value("数量", animateChart ? item.1 : 0),
+                                        innerRadius: .ratio(0.618),
+                                        angularInset: 1.5
+                                    )
+                                    .cornerRadius(5)
+                                    .foregroundStyle(by: .value("状态", item.0))
+                                    .annotation(position: .overlay) {
+                                        if item.1 > 0 && animateChart {
+                                            Text("\(item.1)")
+                                                .font(.caption.bold())
+                                                .foregroundColor(.white)
+                                        }
+                                    }
+                                }
                             }
+                            .frame(height: 250)
+                            .chartForegroundStyleScale([
+                                "已完成": Color.green,
+                                "进行中": Color.blue
+                            ])
+                            .chartLegend(position: .bottom, spacing: 12)
+                            .animation(.spring(response: 0.8, dampingFraction: 0.8), value: animateChart)
                         }
                     }
-                    .frame(height: 120)
                     .padding()
                     .frame(maxWidth: .infinity)
-                    .background(Color.primary.opacity(0.03))
+                    .background(Color(nsColor: .windowBackgroundColor))
                     .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
+                    )
+                    .scaleEffect(animateChart ? 1 : 0.95)
+                    .opacity(animateChart ? 1 : 0)
+                    .animation(.easeOut(duration: 0.5).delay(0.3), value: animateChart)
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("分类统计 (不同类别占比)")
+                            .font(.headline)
+                        
+                        if categoryCounts.isEmpty {
+                            Text("暂无数据")
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, minHeight: 250)
+                        } else {
+                            Chart {
+                                ForEach(categoryCounts, id: \.0) { item in
+                                    SectorMark(
+                                        angle: .value("数量", animateChart ? item.1 : 0),
+                                        innerRadius: .ratio(0.618),
+                                        angularInset: 1.5
+                                    )
+                                    .cornerRadius(5)
+                                    .foregroundStyle(by: .value("分类", item.0))
+                                    .annotation(position: .overlay) {
+                                        if item.1 > 0 && animateChart {
+                                            Text("\(item.1)")
+                                                .font(.caption.bold())
+                                                .foregroundColor(.white)
+                                        }
+                                    }
+                                }
+                            }
+                            .frame(height: 250)
+                            .chartLegend(position: .bottom, spacing: 12)
+                            .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: animateChart)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color(nsColor: .windowBackgroundColor))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
+                    )
+                    .scaleEffect(animateChart ? 1 : 0.95)
+                    .opacity(animateChart ? 1 : 0)
+                    .animation(.easeOut(duration: 0.5).delay(0.4), value: animateChart)
                 }
             }
-            .padding(40)
+            .padding()
         }
-        .background(Color(nsColor: .textBackgroundColor))
-    }
-    
-    // MARK: - 辅助组件
-    
-    /// 构建统计概览卡片
-    private func statCard(title: String, count: Int, color: Color, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: icon)
-                    .foregroundColor(color)
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+        .navigationTitle("统计报表")
+        .onAppear {
+            animateChart = false
+            withAnimation {
+                animateChart = true
             }
-            
-            Text("\(count)")
-                .font(.system(size: 32, weight: .bold))
+        }
+    }
+}
+
+struct StatCard: View {
+    let title: String
+    let value: String
+    let color: Color
+    let delay: Double
+    @State private var show = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.system(size: 32, weight: .bold, design: .rounded))
+                .foregroundColor(color)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(color.opacity(0.1))
+        .background(Color(nsColor: .windowBackgroundColor))
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(color.opacity(0.2), lineWidth: 1)
+                .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
         )
-    }
-    
-    /// 构建分类进度条行
-    private func categoryRow(name: String, count: Int, percentage: Double) -> some View {
-        VStack(spacing: 4) {
-            HStack {
-                Text(name)
-                    .font(.system(size: 13))
-                Spacer()
-                Text("\(count)")
-                    .font(.system(size: 12, weight: .bold))
+        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+        .offset(y: show ? 0 : 20)
+        .opacity(show ? 1 : 0)
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(delay)) {
+                show = true
             }
-            
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.primary.opacity(0.05))
-                    
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.accentColor.opacity(0.8))
-                        .frame(width: geo.size.width * CGFloat(percentage))
-                }
-            }
-            .frame(height: 4)
         }
     }
 }

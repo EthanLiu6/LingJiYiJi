@@ -10,11 +10,10 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var selection: NavigationItem? = .all       // 侧边栏当前选中项
-    @State private var selectedInspiration: Inspiration?      // 列表当前选中灵感项
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all // 控制三栏显示状态
+    @State private var selection: NavigationItem? = .all
+    @State private var selectedInspiration: Inspiration?
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
     
-    // 判断当前侧边栏选中是否属于“列表类”视图
     private var isListSelected: Bool {
         if let selection = selection {
             switch selection {
@@ -28,37 +27,31 @@ struct ContentView: View {
     }
     
     var body: some View {
-        // 使用三栏式布局结构
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            // 第一栏：侧边栏导航
             SidebarView(selection: $selection, selectedInspiration: $selectedInspiration)
                 .frame(minWidth: 200)
         } content: {
-            // 第二栏：灵感列表
             if isListSelected {
                 InspirationListView(selectedInspiration: $selectedInspiration, selection: $selection)
-                    .navigationSplitViewColumnWidth(min: 250, ideal: 360, max: 600)
+                    .navigationSplitViewColumnWidth(min: 300, ideal: 400)
             } else {
-                Text("") // 当选中统计或设置时，中间栏占位隐藏
+                Text("") // 占位，当选择统计或设置时，中间栏留空或隐藏
                     .navigationSplitViewColumnWidth(0)
             }
         } detail: {
-            // 第三栏：灵感详情
             detailView
-                .navigationSplitViewColumnWidth(min: 400, ideal: 450)
         }
-        .frame(minWidth: 950, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
+        .frame(minWidth: 900, maxWidth: .infinity, minHeight: 480, maxHeight: .infinity)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selection)
         .onAppear {
-            setupDefaultCategories() // 首次运行初始化默认分类
+            setupDefaultCategories()
             NotificationManager.shared.requestAuthorization()
         }
         .background {
-            shortcutsBackground // 注册全局快捷键支持
+            shortcutsBackground
         }
     }
     
-    /// 根据侧边栏选中项动态生成右侧详情视图
     @ViewBuilder
     private var detailView: some View {
         if isListSelected {
@@ -84,7 +77,6 @@ struct ContentView: View {
         }
     }
     
-    /// 统计和设置等功能性视图
     @ViewBuilder
     private var utilitySection: some View {
         Group {
@@ -101,27 +93,75 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
-    /// 全局快捷键背景层
     @ViewBuilder
     private var shortcutsBackground: some View {
         Group {
-            // 使用数字键快速切换分类 (Cmd+1, Cmd+2...)
             Button("") { selection = .all }
                 .keyboardShortcut("1", modifiers: .command)
             Button("") { selection = .completed }
                 .keyboardShortcut("2", modifiers: .command)
+            Button("") { selection = .stats }
+                .keyboardShortcut("3", modifiers: .command)
+            Button("") { selection = .settings }
+                .keyboardShortcut(",", modifiers: .command)
         }
         .opacity(0)
         .allowsHitTesting(false)
     }
     
-    /// 初始化默认分类逻辑
     private func setupDefaultCategories() {
         let descriptor = FetchDescriptor<Category>()
-        if let count = try? modelContext.fetchCount(descriptor), count == 0 {
-            for category in Category.defaultCategories {
-                modelContext.insert(category)
+        guard let existingCategories = try? modelContext.fetch(descriptor) else { return }
+        
+        var hasChanges = false
+        
+        // 1. 深度清理：同时处理名称重复和 ID 重复
+        // 先按名称清理
+        let nameGrouped = Dictionary(grouping: existingCategories, by: { $0.name })
+        for (_, cats) in nameGrouped where cats.count > 1 {
+            let sortedCats = cats.sorted { $0.createdAt < $1.createdAt }
+            for i in 1..<sortedCats.count {
+                modelContext.delete(sortedCats[i])
+            }
+            hasChanges = true
+        }
+        
+        // 再按 ID 清理（针对后台报错的 ID 重复问题）
+        let idGrouped = Dictionary(grouping: existingCategories, by: { $0.id })
+        for (_, cats) in idGrouped where cats.count > 1 {
+            // 如果 ID 相同但还没被上面的名称清理掉，则保留第一个
+            let sortedCats = cats.sorted { $0.createdAt < $1.createdAt }
+            for i in 1..<sortedCats.count {
+                modelContext.delete(sortedCats[i])
+            }
+            hasChanges = true
+        }
+        
+        if hasChanges {
+            try? modelContext.save()
+            // 如果清理了数据，直接返回，等待下次刷新
+            return
+        }
+        
+        // 2. 检查并添加缺失的默认分类
+        let currentNames = Set(existingCategories.map { $0.name })
+        let defaults = Category.defaultCategories
+        
+        for (index, defaultCat) in defaults.enumerated() {
+            if !currentNames.contains(defaultCat.name) {
+                let newCat = Category(name: defaultCat.name, icon: defaultCat.icon, orderIndex: index)
+                modelContext.insert(newCat)
+                hasChanges = true
             }
         }
+        
+        if hasChanges {
+            try? modelContext.save()
+        }
     }
+}
+
+#Preview {
+    ContentView()
+        .modelContainer(for: [Inspiration.self, Category.self], inMemory: true)
 }
