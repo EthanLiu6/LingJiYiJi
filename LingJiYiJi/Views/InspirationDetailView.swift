@@ -5,6 +5,7 @@ struct InspirationDetailView: View {
     @Bindable var inspiration: Inspiration
     @Query private var categories: [Category]
     @State private var isAIHovered: Bool = false
+    @State private var cachedReminderDate: Date = Calendar.current.date(bySettingHour: 22, minute: 0, second: 0, of: Calendar.current.date(byAdding: .day, value: 1, to: Date())!) ?? Date()
     
     var body: some View {
         Form {
@@ -91,35 +92,85 @@ struct InspirationDetailView: View {
             }
             
             Section("提醒") {
-                Toggle(isOn: Binding(
-                    get: { inspiration.reminderDate != nil },
-                    set: { isOn in
-                        if isOn {
-                            let calendar = Calendar.current
-                            if let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date()) {
-                                var components = calendar.dateComponents([.year, .month, .day], from: tomorrow)
-                                components.hour = 22
-                                components.minute = 0
-                                inspiration.reminderDate = calendar.date(from: components)
+                VStack(alignment: .leading, spacing: 12) {
+                    Toggle(isOn: Binding(
+                        get: { inspiration.reminderDate != nil },
+                        set: { isOn in
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                if isOn {
+                                    // 优先使用缓存的时间，如果缓存时间已过期，则设为明天晚上10点
+                                    let dateToSet = cachedReminderDate > Date() ? cachedReminderDate : defaultReminderDate()
+                                    inspiration.reminderDate = dateToSet
+                                    NotificationManager.shared.scheduleNotification(for: inspiration)
+                                } else {
+                                    if let current = inspiration.reminderDate {
+                                        cachedReminderDate = current
+                                    }
+                                    inspiration.reminderDate = nil
+                                    NotificationManager.shared.cancelNotification(for: inspiration)
+                                }
                             }
-                        } else {
-                            inspiration.reminderDate = nil
                         }
+                    )) {
+                        Label("开启提醒", systemImage: "bell.badge.fill")
+                            .foregroundColor(inspiration.reminderDate != nil ? Color(red: 1.0, green: 0.4, blue: 0.2) : .secondary)
                     }
-                )) {
-                    Label("开启提醒", systemImage: "bell.badge.fill")
-                        .foregroundColor(inspiration.reminderDate != nil ? Color(red: 1.0, green: 0.4, blue: 0.2) : .secondary)
-                }
-                .toggleStyle(.switch)
-                
-                if let _ = inspiration.reminderDate {
-                    DatePicker("提醒时间", selection: Binding(
-                        get: { inspiration.reminderDate ?? Date() },
-                        set: { 
-                            inspiration.reminderDate = $0
-                            NotificationManager.shared.scheduleNotification(for: inspiration)
+                    .toggleStyle(.switch)
+                    
+                    if let reminderDate = inspiration.reminderDate {
+                        VStack(alignment: .leading, spacing: 10) {
+                            // 快捷预设按钮
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    presetButton("1小时后", icon: "clock") { setReminderRelative(hours: 1) }
+                                    presetButton("今晚 20:00", icon: "moon.stars") { setReminderToday(hour: 20) }
+                                    presetButton("明天 09:00", icon: "sunrise") { setReminderTomorrow(hour: 9) }
+                                    presetButton("明天 22:00", icon: "moon") { setReminderTomorrow(hour: 22) }
+                                }
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Label("日期", systemImage: "calendar")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .frame(width: 60, alignment: .leading)
+                                    
+                                    DatePicker("", selection: Binding(
+                                        get: { reminderDate },
+                                        set: { 
+                                            inspiration.reminderDate = $0
+                                            cachedReminderDate = $0
+                                            NotificationManager.shared.scheduleNotification(for: inspiration)
+                                        }
+                                    ), displayedComponents: .date)
+                                    .datePickerStyle(.field)
+                                    .labelsHidden()
+                                }
+                                
+                                HStack {
+                                    Label("时间", systemImage: "clock")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .frame(width: 60, alignment: .leading)
+                                    
+                                    DatePicker("", selection: Binding(
+                                        get: { reminderDate },
+                                        set: { 
+                                            inspiration.reminderDate = $0
+                                            cachedReminderDate = $0
+                                            NotificationManager.shared.scheduleNotification(for: inspiration)
+                                        }
+                                    ), displayedComponents: .hourAndMinute)
+                                    .datePickerStyle(.field)
+                                    .labelsHidden()
+                                }
+                            }
+                            .padding(.vertical, 4)
                         }
-                    ))
+                        .padding(.top, 4)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                 }
             }
             
@@ -152,6 +203,59 @@ struct InspirationDetailView: View {
                 }
                 .keyboardShortcut("f", modifiers: .command)
             }
+        }
+    }
+    
+    // MARK: - 提醒助手方法
+    
+    private func presetButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 10))
+                Text(title)
+                    .font(.system(size: 11))
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.primary.opacity(0.05))
+            .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+    }
+    
+    private func defaultReminderDate() -> Date {
+        let calendar = Calendar.current
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!
+        return calendar.date(bySettingHour: 22, minute: 0, second: 0, of: tomorrow) ?? Date()
+    }
+    
+    private func setReminderRelative(hours: Int) {
+        let date = Calendar.current.date(byAdding: .hour, value: hours, to: Date()) ?? Date()
+        updateReminder(date)
+    }
+    
+    private func setReminderToday(hour: Int) {
+        let date = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: Date()) ?? Date()
+        // 如果设定时间已过，自动设为明天
+        if date < Date() {
+            setReminderTomorrow(hour: hour)
+        } else {
+            updateReminder(date)
+        }
+    }
+    
+    private func setReminderTomorrow(hour: Int) {
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date())!
+        let date = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: tomorrow) ?? Date()
+        updateReminder(date)
+    }
+    
+    private func updateReminder(_ date: Date) {
+        withAnimation(.spring()) {
+            inspiration.reminderDate = date
+            cachedReminderDate = date
+            NotificationManager.shared.scheduleNotification(for: inspiration)
         }
     }
 }
