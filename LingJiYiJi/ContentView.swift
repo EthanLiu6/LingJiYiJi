@@ -114,51 +114,45 @@ struct ContentView: View {
         let descriptor = FetchDescriptor<Category>()
         guard let existingCategories = try? modelContext.fetch(descriptor) else { return }
         
-        var hasChanges = false
-        
-        // 1. 深度清理：同时处理名称重复和 ID 重复
-        // 先按名称清理
-        let nameGrouped = Dictionary(grouping: existingCategories, by: { $0.name })
-        for (_, cats) in nameGrouped where cats.count > 1 {
-            let sortedCats = cats.sorted { $0.createdAt < $1.createdAt }
-            for i in 1..<sortedCats.count {
-                modelContext.delete(sortedCats[i])
+        // 如果已经有任何分类了，说明已经初始化过，不再强制添加默认分类
+        // 这样用户删除或重命名默认分类后，下次启动就不会再自动创建
+        if !existingCategories.isEmpty {
+            // 仍然保留清理逻辑，防止数据异常
+            var hasChanges = false
+            
+            // 1. 深度清理：同时处理名称重复和 ID 重复
+            let nameGrouped = Dictionary(grouping: existingCategories, by: { $0.name })
+            for (_, cats) in nameGrouped where cats.count > 1 {
+                let sortedCats = cats.sorted { $0.createdAt < $1.createdAt }
+                for i in 1..<sortedCats.count {
+                    modelContext.delete(sortedCats[i])
+                }
+                hasChanges = true
             }
-            hasChanges = true
-        }
-        
-        // 再按 ID 清理（针对后台报错的 ID 重复问题）
-        let idGrouped = Dictionary(grouping: existingCategories, by: { $0.id })
-        for (_, cats) in idGrouped where cats.count > 1 {
-            // 如果 ID 相同但还没被上面的名称清理掉，则保留第一个
-            let sortedCats = cats.sorted { $0.createdAt < $1.createdAt }
-            for i in 1..<sortedCats.count {
-                modelContext.delete(sortedCats[i])
+            
+            let idGrouped = Dictionary(grouping: existingCategories, by: { $0.id })
+            for (_, cats) in idGrouped where cats.count > 1 {
+                let sortedCats = cats.sorted { $0.createdAt < $1.createdAt }
+                for i in 1..<sortedCats.count {
+                    modelContext.delete(sortedCats[i])
+                }
+                hasChanges = true
             }
-            hasChanges = true
-        }
-        
-        if hasChanges {
-            try? modelContext.save()
-            // 如果清理了数据，直接返回，等待下次刷新
+            
+            if hasChanges {
+                try? modelContext.save()
+            }
             return
         }
         
-        // 2. 检查并添加缺失的默认分类
-        let currentNames = Set(existingCategories.map { $0.name })
+        // 只有在完全没有任何分类时（第一次启动），才添加默认分类
         let defaults = Category.defaultCategories
-        
         for (index, defaultCat) in defaults.enumerated() {
-            if !currentNames.contains(defaultCat.name) {
-                let newCat = Category(name: defaultCat.name, icon: defaultCat.icon, orderIndex: index)
-                modelContext.insert(newCat)
-                hasChanges = true
-            }
+            let newCat = Category(name: defaultCat.name, icon: defaultCat.icon, orderIndex: index)
+            modelContext.insert(newCat)
         }
         
-        if hasChanges {
-            try? modelContext.save()
-        }
+        try? modelContext.save()
     }
 }
 
